@@ -654,19 +654,22 @@ function renderInvRows(data, query='', cat=''){
     tbody.innerHTML=`<tr><td colspan="9"><div class="empty"><i class="ti ti-search"></i>${q||cat?'Sin resultados para tu búsqueda. <a href="#" onclick="clearInvSearch();return false;" style="color:var(--brand);">Limpiar filtro</a>':'Sin insumos aún.'}</div></td></tr>`;
     return;
   }
-  tbody.innerHTML=filtered.map(i=>{
-    return`<tr>
+  function hl(text){
+    if(!q||!text)return text||'';
+    try{return String(text).replace(new RegExp('('+q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&')+')','gi'),'<mark style="background:#FFF3CC;border-radius:2px;padding:0 2px;">$1</mark>');}
+    catch(e){return String(text);}
+  }
+  tbody.innerHTML=filtered.map(i=>`<tr>
       <td style="color:var(--text2);font-size:12px;">${i.id}</td>
-      <td style="font-weight:500;">${highlight(i.nombre)}</td>
+      <td style="font-weight:500;">${hl(i.nombre)}</td>
       <td><span class="badge" style="${badgeStyle(i.categoria)}">${capCat(i.categoria)}</span></td>
       <td style="text-align:right;">${i.cantidad!==null?i.cantidad:'—'}</td>
       <td><span class="unit-pill">${i.unidad}</span></td>
       <td style="text-align:right;">${fmtMoney(i.costo)}</td>
-      <td>${highlight(i.proveedor||'—')}</td>
+      <td>${hl(i.proveedor||'—')}</td>
       <td style="color:var(--text2);font-size:12px;">${i.obs||'—'}</td>
       <td><div style="display:flex;gap:4px;"><button class="btn sm" onclick="editInv('${i.id}')"><i class="ti ti-edit"></i></button><button class="btn sm danger" onclick="deleteInv('${i.id}')"><i class="ti ti-trash"></i></button></div></td>
-    </tr>`;
-  }).join('');
+    </tr>`).join('');
 }
 
 function filterInventario(query){
