@@ -206,6 +206,21 @@ textarea{resize:vertical;min-height:60px;}
     </div>
   </div>
   <div class="metric-grid" id="inv-metrics"></div>
+  <!-- Control de margen de inflación -->
+  <div style="display:flex;align-items:center;gap:10px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;flex-wrap:wrap;">
+    <i class="ti ti-trending-up" style="color:#854F0B;font-size:18px;flex-shrink:0;"></i>
+    <div style="flex:1;min-width:200px;">
+      <div style="font-size:12px;font-weight:500;color:var(--text);">Margen de inflación proyectado</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:1px;">Se aplica sobre el costo real para cotizaciones a futuro. No altera los precios guardados.</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <input type="number" id="inv-margen-inflacion" value="10" min="0" max="100" step="0.5"
+        style="width:72px;text-align:right;font-weight:500;font-size:14px;border-color:#D4860A;"
+        oninput="setMargenInflacion(this.value)"/>
+      <span style="font-size:14px;font-weight:500;color:#854F0B;">%</span>
+      <span style="font-size:12px;color:var(--text2);">— Costo base × <span id="inv-margen-factor">1.10</span></span>
+    </div>
+  </div>
   <!-- Barra de búsqueda -->
   <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
     <div style="position:relative;flex:1;min-width:200px;">
@@ -226,7 +241,8 @@ textarea{resize:vertical;min-height:60px;}
     <table><thead><tr>
       <th style="width:70px">ID</th><th style="width:150px">Nombre</th><th style="width:90px">Categoría</th>
       <th style="width:70px">Cantidad</th><th style="width:65px">Unidad</th><th style="width:95px">Costo (₡)</th>
-      <th style="width:120px">Proveedor</th><th style="width:120px">Observaciones</th><th style="width:84px"></th>
+      <th style="width:110px;color:#854F0B;">Costo +margen</th>
+      <th style="width:110px">Proveedor</th><th style="width:100px">Observaciones</th><th style="width:84px"></th>
     </tr></thead><tbody id="inv-tbody"></tbody></table>
   </div>
 </div>
@@ -508,6 +524,10 @@ if(CONFIGURED) sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_AN
 let invData=[], cfData=[], menuData=[], cotizaciones=[];
 let listasConfig={categorias:[],unidades:[],proveedores:[],equipos:[]};
 let parsedImportRows=[], xlsxFullData=null, importMode='xlsx';
+// Margen de inflación de precios (se guarda en localStorage)
+let margenInflacion=parseFloat(localStorage.getItem('brumas_margen_inflacion')||'10');
+function costoConMargen(costo){return costo*(1+margenInflacion/100);}
+function setMargenInflacion(val){margenInflacion=Math.max(0,parseFloat(val)||0);localStorage.setItem('brumas_margen_inflacion',margenInflacion);renderInventario();}
 const INV_COLS=['ID','Nombre','Categoria','Cantidad','Unidad','Costo (₡)','Proveedor','Observaciones'];
 const CAT_MAP={carne:'carne',pollo:'pollo',cerdo:'cerdo',condimento:'condimento',aderezo:'aderezo',salsa:'salsa',vegetal:'vegetal',carbon:'carbon','carbón':'carbon',lena:'lena','leña':'lena'};
 const TIPOS_COMBO=['General','Entrada','Plato fuerte','Postre','Bebida','Acompañamiento'];
@@ -558,14 +578,11 @@ async function loadAllData(){
     ]);
     invData=(r1.data||[]).map(r=>({id:r.id,nombre:r.nombre,categoria:r.categoria,cantidad:r.cantidad,unidad:r.unidad,costo:r.costo,proveedor:r.proveedor||'',obs:r.obs||''}));
     cfData=(r2.data||[]).map(r=>{
-      // Leer campo items (JSONB). Supabase puede devolverlo como string — parsear defensivamente.
       let items=r.items;
       if(typeof items==='string'){try{items=JSON.parse(items);}catch(e){items=null;}}
       if(!Array.isArray(items)||!items.length){
-        // Fallback al formato legacy p1-p4
         items=[r.p1,r.p2,r.p3,r.p4].filter(Boolean).map(id=>({id,qty:1}));
       }
-      // Recalcular total con precios actuales del inventario
       const total=items.reduce((s,item)=>{
         const inv=invData.find(x=>x.id===item.id);
         return s+(inv?inv.costo*(item.qty||1):0);
@@ -629,10 +646,17 @@ async function saveInventario(){
 
 function renderInventario(){
   const tbody=document.getElementById('inv-tbody');if(!tbody)return;
+  // Sincronizar el control de margen con el valor guardado
+  const margenInput=document.getElementById('inv-margen-inflacion');
+  if(margenInput&&parseFloat(margenInput.value)!==margenInflacion)margenInput.value=margenInflacion;
+  const factorEl=document.getElementById('inv-margen-factor');
+  if(factorEl)factorEl.textContent=(1+margenInflacion/100).toFixed(2);
   const totalCosto=invData.reduce((s,i)=>s+i.costo,0);
+  const totalConMargen=invData.reduce((s,i)=>s+costoConMargen(i.costo),0);
   document.getElementById('inv-metrics').innerHTML=
     '<div class="metric"><div class="metric-label">Total insumos</div><div class="metric-value">'+invData.length+'</div></div>'+
-    '<div class="metric"><div class="metric-label">Costo total</div><div class="metric-value cost-total">'+fmtMoney(totalCosto)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">Costo total real</div><div class="metric-value cost-total">'+fmtMoney(totalCosto)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">Costo total +'+margenInflacion+'%</div><div class="metric-value" style="color:#854F0B;">'+fmtMoney(totalConMargen)+'</div></div>'+
     '<div class="metric"><div class="metric-label">Categorías</div><div class="metric-value">'+new Set(invData.map(i=>i.categoria)).size+'</div></div>';
   // Populate category filter
   const catSel=document.getElementById('inv-filter-cat');
@@ -665,7 +689,7 @@ function renderInvRows(data, query='', cat=''){
     if(clearBtn)clearBtn.style.display='none';
   }
   if(!filtered.length){
-    tbody.innerHTML=`<tr><td colspan="9"><div class="empty"><i class="ti ti-search"></i>${q||cat?'Sin resultados para tu búsqueda. <a href="#" onclick="clearInvSearch();return false;" style="color:var(--brand);">Limpiar filtro</a>':'Sin insumos aún.'}</div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="10"><div class="empty"><i class="ti ti-search"></i>${q||cat?'Sin resultados para tu búsqueda. <a href="#" onclick="clearInvSearch();return false;" style="color:var(--brand);">Limpiar filtro</a>':'Sin insumos aún.'}</div></td></tr>`;
     return;
   }
   function hl(text){
@@ -680,6 +704,7 @@ function renderInvRows(data, query='', cat=''){
       <td style="text-align:right;">${i.cantidad!==null?i.cantidad:'—'}</td>
       <td><span class="unit-pill">${i.unidad}</span></td>
       <td style="text-align:right;">${fmtMoney(i.costo)}</td>
+      <td style="text-align:right;color:#854F0B;font-weight:500;">${fmtMoney(costoConMargen(i.costo))}</td>
       <td>${hl(i.proveedor||'—')}</td>
       <td style="color:var(--text2);font-size:12px;">${i.obs||'—'}</td>
       <td><div style="display:flex;gap:4px;"><button class="btn sm" onclick="editInv('${i.id}')"><i class="ti ti-edit"></i></button><button class="btn sm danger" onclick="deleteInv('${i.id}')"><i class="ti ti-trash"></i></button></div></td>
@@ -904,7 +929,7 @@ function addComboBlock(combo=null){
     <div class="combo-col-header"><span>Ítem</span><span>Cantidad</span><span>Subtotal</span><span></span></div>
     <div class="combo-items"></div>
     <button class="add-item-btn" onclick="addComboItem('${cid}')"><i class="ti ti-plus" style="font-size:12px;"></i> Agregar ítem</button>
-    <div style="font-size:12px;color:var(--green);margin-top:6px;text-align:right;font-weight:500;" class="combo-subtotal">Costo/persona: ₡0</div>`;
+    <div style="font-size:12px;color:var(--green);margin-top:6px;text-align:right;font-weight:500;" class="combo-subtotal">Subtotal: ₡0</div>`;
   cont.appendChild(div);
   const items=combo&&combo.items?combo.items:[{id:'',qty:1}];
   items.forEach(item=>addComboItem(cid,typeof item==='object'?item.id:item,typeof item==='object'?item.qty:1));
@@ -1017,7 +1042,7 @@ function recalcMenuTotal(){
       sub+=rowTotal;
     });
     total+=sub;
-    block.querySelector('.combo-subtotal').textContent='Costo/persona: '+fmtMoney(sub);
+    block.querySelector('.combo-subtotal').textContent='Subtotal: '+fmtMoney(sub);
   });
   document.getElementById('mn-total-costo').textContent=fmtMoney(total);
 }
@@ -1038,13 +1063,15 @@ function getCombosFromModal(){
   return combos;
 }
 
-
+// Devuelve el costo POR PERSONA del menú, con margen de inflación aplicado
+function calcMenuCostoPorPersona(mn){
   return(mn.combos||[]).reduce((total,combo)=>{
     return total+(combo.items||[]).reduce((s,item)=>{
       const id=typeof item==='object'?item.id:item;
       const qty=typeof item==='object'?(item.qty||1):1;
       const inv=invData.find(i=>i.id===id);const cf=cfData.find(c=>c.id===id);
-      return s+((inv?inv.costo:0)+(cf?cf.total:0))*qty;
+      const costoBase=(inv?inv.costo:0)+(cf?cf.total:0);
+      return s+costoConMargen(costoBase)*qty;
     },0);
   },0);
 }
@@ -1074,7 +1101,7 @@ function renderMenus(){
         <div>
           <div style="font-weight:500;font-size:15px;">${mn.nombre} <span style="color:var(--text2);font-size:12px;">${mn.id}</span></div>
           ${mn.descripcion?`<div style="font-size:12px;color:var(--text2);margin-top:2px;">${mn.descripcion}</div>`:''}
-          <div style="font-size:12px;color:var(--green);margin-top:4px;">💰 Costo por persona: ${fmtMoney(costoTotal)}</div>
+          <div style="font-size:12px;color:#854F0B;margin-top:4px;">💰 Costo/persona (+${margenInflacion}% inflación): ${fmtMoney(costoTotal)}</div>
         </div>
         <div style="display:flex;gap:4px;">
           <button class="btn sm" onclick="editMenu('${mn.id}')"><i class="ti ti-edit"></i></button>
@@ -1112,7 +1139,6 @@ function recalc(){
   const margen=parseFloat(document.getElementById('c-margen').value)||0;
   const menuId=document.getElementById('c-menu').value;
   const menuSel=menuData.find(m=>m.id===menuId);
-  // FIX #1: el menú guarda costo POR PERSONA — se multiplica × cantidad de personas
   const costoPorPersona=menuSel?calcMenuCostoPorPersona(menuSel):0;
   const costoInsumos=costoPorPersona*personas;
   const costoPersonal=npar*costopar;
@@ -1125,7 +1151,7 @@ function recalc(){
   const actions=document.getElementById('cot-actions');
   resumen.innerHTML=`<div class="result-box">
     ${menuSel?`<div class="result-row"><span>Menú seleccionado</span><span style="font-weight:500;">${menuSel.nombre}</span></div>`:''}
-    <div class="result-row"><span>Insumos (${fmtMoney(costoPorPersona)}/persona × ${personas})</span><span>${fmtMoney(costoInsumos)}</span></div>
+    <div class="result-row"><span>Insumos (${fmtMoney(costoPorPersona)}/persona × ${personas}, +${margenInflacion}%)</span><span>${fmtMoney(costoInsumos)}</span></div>
     <div class="result-row"><span>Personal (${npar} parrillero${npar!==1?'s':''} × ${fmtMoney(costopar)})</span><span>${fmtMoney(costoPersonal)}</span></div>
     <div class="result-row"><span>Equipo</span><span>${fmtMoney(costoEquipo)}</span></div>
     <div class="result-row"><span>Otros costos</span><span>${fmtMoney(otros)}</span></div>
@@ -1157,7 +1183,7 @@ async function guardarCotizacion(){
   const ganancia=costoBase*(margen/100);
   const precioFinal=costoBase+ganancia;
   const ppp=personas>0?precioFinal/personas:0;
-  const row={cliente,fecha:document.getElementById('c-fecha').value||new Date().toISOString().split('T')[0],menu_id:menuId,menu_nombre:menuSel?menuSel.nombre:'',personas,parrilleros:npar,costo_parrillero:costopar,costo_insumos:costoInsumos,costo_por_persona_menu:costoPorPersona,costo_equipo:costoEquipo,otros_costos:otros,margen,costo_total:costoBase,ganancia,precio_final:precioFinal,precio_por_persona:ppp,notas:document.getElementById('c-notas').value};
+  const row={cliente,fecha:document.getElementById('c-fecha').value||new Date().toISOString().split('T')[0],menu_id:menuId,menu_nombre:menuSel?menuSel.nombre:'',personas,parrilleros:npar,costo_parrillero:costopar,costo_insumos:costoInsumos,costo_por_persona_menu:costoPorPersona,margen_inflacion:margenInflacion,costo_equipo:costoEquipo,otros_costos:otros,margen,costo_total:costoBase,ganancia,precio_final:precioFinal,precio_por_persona:ppp,notas:document.getElementById('c-notas').value};
   setSyncStatus('loading','Guardando...');
   const{data,error}=await sbClient.from('cotizaciones').insert(row).select();
   if(error){setSyncStatus('error','Error');alert('Error al guardar: '+error.message);return;}
@@ -1272,7 +1298,7 @@ function recalcEdit(){
   const ppp=personas>0?precioFinal/personas:0;
   document.getElementById('cot-edit-resumen').innerHTML=`
     <div class="result-box">
-      ${menuSel?`<div class="result-row"><span>Insumos (${fmtMoney(costoPorPersona)}/pers. × ${personas})</span><span>${fmtMoney(costoInsumos)}</span></div>`:''}
+      ${menuSel?`<div class="result-row"><span>Insumos (${fmtMoney(costoPorPersona)}/pers. × ${personas}, +${margenInflacion}%)</span><span>${fmtMoney(costoInsumos)}</span></div>`:''}
       <div class="result-row"><span>Personal (${npar} × ${fmtMoney(costopar)})</span><span>${fmtMoney(costoPersonal)}</span></div>
       <div class="result-row"><span>Equipo + otros</span><span>${fmtMoney(costoEquipo+otros)}</span></div>
       <div class="result-row total"><span>Costo base</span><span>${fmtMoney(costoBase)}</span></div>
@@ -1301,7 +1327,7 @@ async function saveCotizacionEdit(){
   const ganancia=costoBase*(margen/100);
   const precioFinal=costoBase+ganancia;
   const ppp=personas>0?precioFinal/personas:0;
-  const row={id,cliente:document.getElementById('cot-edit-cliente').value.trim(),fecha:document.getElementById('cot-edit-fecha').value,menu_id:menuId,menu_nombre:menuSel?menuSel.nombre:'',personas,parrilleros:npar,costo_parrillero:costopar,costo_insumos:costoInsumos,costo_por_persona_menu:costoPorPersona,costo_equipo:costoEquipo,otros_costos:otros,margen,costo_total:costoBase,ganancia,precio_final:precioFinal,precio_por_persona:ppp,notas:document.getElementById('cot-edit-notas').value};
+  const row={id,cliente:document.getElementById('cot-edit-cliente').value.trim(),fecha:document.getElementById('cot-edit-fecha').value,menu_id:menuId,menu_nombre:menuSel?menuSel.nombre:'',personas,parrilleros:npar,costo_parrillero:costopar,costo_insumos:costoInsumos,costo_por_persona_menu:costoPorPersona,margen_inflacion:margenInflacion,costo_equipo:costoEquipo,otros_costos:otros,margen,costo_total:costoBase,ganancia,precio_final:precioFinal,precio_por_persona:ppp,notas:document.getElementById('cot-edit-notas').value};
   setSyncStatus('loading','Guardando...');
   const{error}=await sbClient.from('cotizaciones').upsert(row,{onConflict:'id'});
   if(error){setSyncStatus('error','Error');alert('Error: '+error.message);return;}
@@ -1463,11 +1489,8 @@ function exportExcel(){
   XLSX.writeFile(wb,'BrumasBBQ_datos.xlsx');
 }
 
-// NOTA SQL — ejecutar en Supabase si la columna no existe:
-// alter table cotizaciones add column if not exists costo_por_persona_menu numeric;
-// alter table costos_fijos add column if not exists items jsonb default '[]';
-
 initAuth();
 </script>
 </body>
 </html>
+
