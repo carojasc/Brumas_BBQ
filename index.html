@@ -858,8 +858,8 @@ async function saveCostoFijo(){
   });
   const total=items.reduce((s,item)=>{
     const inv=invData.find(x=>x.id===item.id);
-    const cf=cfData.find(x=>x.id===item.id);
-    return s+((inv?inv.costo:(cf?cf.total:0))*item.qty);
+    const cfr=cfData.find(x=>x.id===item.id);
+    return s+((inv?inv.costo:(cfr?cfr.total:0))*item.qty);
   },0);
   // Keep p1-p4 for backwards compatibility
   const cf={
