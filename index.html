@@ -771,7 +771,9 @@ function addCFIngredient(value='',qty=1){
 }
 
 function cfItemsList(){
-  return invData.map(i=>({id:i.id,label:i.nombre,detail:`${i.unidad} — ${fmtMoney(i.costo)}`,badge:'inv'}));
+  const insumos=invData.map(i=>({id:i.id,label:i.nombre,detail:`${i.unidad} — ${fmtMoney(i.costo)}`,badge:'inv'}));
+  const recetas=cfData.map(c=>({id:c.id,label:c.nombre,detail:`receta — ${fmtMoney(c.total)}`,badge:'receta'}));
+  return [...insumos,...recetas];
 }
 
 function renderCFPickerOptions(pid,query){
@@ -796,7 +798,7 @@ function setCFPickerValue(pid,id){
   const picker=document.getElementById(pid);if(!picker)return;
   const item=cfItemsList().find(i=>i.id===id);
   picker.querySelector('.item-picker-value').value=id||'';
-  picker.querySelector('.item-picker-input').value=item?`${item.label} (${item.detail})`:'';
+  picker.querySelector('.item-picker-input').value=item?item.label:'';
   document.getElementById(pid+'-dd').classList.remove('open');
   updateCFTotal();
 }
@@ -832,8 +834,9 @@ function updateCFTotal(){
     if(!pidEl)return;
     const id=pidEl.value;
     const qty=parseFloat(qtyEl?qtyEl.value:1)||1;
-    const item=invData.find(i=>i.id===id);
-    const unitCost=item?item.costo:0;
+    const inv=invData.find(i=>i.id===id);
+    const cf=cfData.find(c=>c.id===id);
+    const unitCost=inv?inv.costo:(cf?cf.total:0);
     const sub=unitCost*qty;
     if(subEl)subEl.textContent=fmtMoney(sub);
     total+=sub;
@@ -853,7 +856,11 @@ async function saveCostoFijo(){
     const qty=parseFloat(qtyEl?qtyEl.value:1)||1;
     if(id)items.push({id,qty});
   });
-  const total=items.reduce((s,item)=>{const i=invData.find(x=>x.id===item.id);return s+(i?i.costo*item.qty:0);},0);
+  const total=items.reduce((s,item)=>{
+    const inv=invData.find(x=>x.id===item.id);
+    const cf=cfData.find(x=>x.id===item.id);
+    return s+((inv?inv.costo:(cf?cf.total:0))*item.qty);
+  },0);
   // Keep p1-p4 for backwards compatibility
   const cf={
     id:editId||nextId('CF',cfData),
@@ -872,7 +879,11 @@ async function saveCostoFijo(){
 function recalcCFs(){
   cfData=cfData.map(cf=>{
     const items=cf.items&&cf.items.length?cf.items:[cf.p1,cf.p2,cf.p3,cf.p4].filter(Boolean).map(id=>({id,qty:1}));
-    const total=items.reduce((s,item)=>{const i=invData.find(x=>x.id===item.id);return s+(i?i.costo*(item.qty||1):0);},0);
+    const total=items.reduce((s,item)=>{
+      const inv=invData.find(x=>x.id===item.id);
+      const cfr=cfData.find(x=>x.id===item.id);
+      return s+((inv?inv.costo:(cfr?cfr.total:0))*(item.qty||1));
+    },0);
     return{...cf,items,total};
   });
   renderCF();
