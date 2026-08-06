@@ -1463,8 +1463,8 @@ async function saveUsuario(){
       if(authError)throw new Error(authError.message);
       const uid=authData?.user?.id;
       if(!uid)throw new Error('No se pudo obtener el ID del usuario creado.');
-      // Confirmar email directamente en la tabla (evita el link de correo)
-      await sbClient.rpc('confirm_user_email',{user_email:email}).catch(()=>{});
+      // Confirmar email automáticamente
+      try{await sbClient.rpc('confirm_user_email',{user_email:email});}catch(e){}
       // Guardar rol en app_usuarios
       const{error:insErr}=await sbClient.from('app_usuarios').insert({id:uid,email,rol});
       if(insErr)throw new Error(insErr.message);
@@ -1654,4 +1654,5 @@ initAuth();
 </script>
 </body>
 </html>
+
 
