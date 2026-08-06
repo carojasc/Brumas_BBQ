@@ -340,6 +340,7 @@ textarea{resize:vertical;min-height:60px;}
     <button class="mant-tab" onclick="switchMantTab('unidades',this)"><i class="ti ti-ruler"></i> Unidades</button>
     <button class="mant-tab" onclick="switchMantTab('proveedores',this)"><i class="ti ti-truck"></i> Proveedores</button>
     <button class="mant-tab" onclick="switchMantTab('equipos',this)"><i class="ti ti-tools"></i> Equipos</button>
+    <button class="mant-tab" onclick="switchMantTab('usuarios',this)"><i class="ti ti-users"></i> Usuarios</button>
   </div>
   <div id="mant-categorias" class="mant-panel active">
     <div class="section-header" style="margin-bottom:12px;"><span style="font-size:13px;color:var(--text2);">Categorías de insumos</span><button class="btn primary sm" onclick="openModalLista('categoria')"><i class="ti ti-plus"></i> Nueva</button></div>
@@ -356,6 +357,23 @@ textarea{resize:vertical;min-height:60px;}
   <div id="mant-equipos" class="mant-panel">
     <div class="section-header" style="margin-bottom:12px;"><span style="font-size:13px;color:var(--text2);">Tipos de equipo</span><button class="btn primary sm" onclick="openModalLista('equipo')"><i class="ti ti-plus"></i> Nuevo</button></div>
     <div class="table-wrap"><div id="lista-equipos"></div></div>
+  </div>
+  <div id="mant-usuarios" class="mant-panel">
+    <div class="section-header" style="margin-bottom:12px;">
+      <span style="font-size:13px;color:var(--text2);">Usuarios del sistema</span>
+      <button class="btn primary sm" onclick="openModalUsuario()"><i class="ti ti-plus"></i> Nuevo usuario</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Email</th>
+          <th style="width:140px;">Rol</th>
+          <th style="width:160px;">Creado</th>
+          <th style="width:90px;"></th>
+        </tr></thead>
+        <tbody id="usuarios-tbody"><tr><td colspan="4"><div class="empty">Cargando usuarios...</div></td></tr></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -386,6 +404,28 @@ textarea{resize:vertical;min-height:60px;}
     </div>
     <div id="import-status-area"></div><div id="import-preview-area"></div>
     <div id="import-actions" style="display:none;margin-top:14px;"><div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn" onclick="closeModal('import')">Cancelar</button><button class="btn success" onclick="confirmImport()"><i class="ti ti-check"></i> Confirmar</button></div></div>
+  </div>
+</div>
+
+<!-- MODAL USUARIO -->
+<div class="modal-overlay" id="modal-usuario">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header"><span class="modal-title" id="usuario-modal-title">Nuevo usuario</span><button class="btn sm" onclick="closeModal('usuario')"><i class="ti ti-x"></i></button></div>
+    <input type="hidden" id="usuario-edit-id"/>
+    <div class="form-group"><label class="form-label">Correo electrónico</label><input type="email" id="usuario-email" placeholder="correo@ejemplo.com"/></div>
+    <div class="form-group"><label class="form-label">Contraseña <span id="usuario-pass-hint" style="color:var(--text2);font-weight:400;">(requerida para nuevo usuario)</span></label><input type="password" id="usuario-pass" placeholder="Mínimo 8 caracteres"/></div>
+    <div class="form-group">
+      <label class="form-label">Rol de acceso</label>
+      <select id="usuario-rol" style="width:100%;">
+        <option value="full">🔓 Acceso completo — puede crear, editar y eliminar</option>
+        <option value="readonly">👁️ Solo lectura — solo puede ver la información</option>
+      </select>
+    </div>
+    <div id="usuario-error" style="display:none;background:#FEE2E2;color:#B91C1C;border-radius:var(--radius);padding:8px 12px;font-size:13px;margin-top:8px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn" onclick="closeModal('usuario')">Cancelar</button>
+      <button class="btn primary" onclick="saveUsuario()" id="usuario-save-btn"><i class="ti ti-device-floppy"></i> Guardar</button>
+    </div>
   </div>
 </div>
 
@@ -526,6 +566,7 @@ let listasConfig={categorias:[],unidades:[],proveedores:[],equipos:[]};
 let parsedImportRows=[], xlsxFullData=null, importMode='xlsx';
 // Margen de inflación de precios (se guarda en localStorage)
 let margenInflacion=parseFloat(localStorage.getItem('brumas_margen_inflacion')||'10');
+let currentUserRole='full'; // 'full' o 'readonly'
 function costoConMargen(costo){return costo*(1+margenInflacion/100);}
 function setMargenInflacion(val){margenInflacion=Math.max(0,parseFloat(val)||0);localStorage.setItem('brumas_margen_inflacion',margenInflacion);renderInventario();}
 const INV_COLS=['ID','Nombre','Categoria','Cantidad','Unidad','Costo (₡)','Proveedor','Observaciones'];
@@ -562,7 +603,27 @@ async function enterApp(user){
   document.getElementById('main-app').style.display='flex';
   document.getElementById('user-email-label').textContent=user.email;
   if(user.email===ADMIN_EMAIL)document.getElementById('nav-mant').style.display='flex';
+  // Cargar rol del usuario desde la tabla app_usuarios
+  const{data:uData}=await sbClient.from('app_usuarios').select('rol').eq('email',user.email).single();
+  currentUserRole=(uData&&uData.rol==='readonly')?'readonly':'full';
+  applyRoleRestrictions();
   await loadAllData();
+}
+function applyRoleRestrictions(){
+  if(currentUserRole!=='readonly')return;
+  // Ocultar todos los botones de acción en modo solo lectura
+  const style=document.createElement('style');
+  style.id='readonly-style';
+  style.textContent=`
+    .btn.primary, .btn.danger, .btn.success { display:none !important; }
+    #nav-mant { display:none !important; }
+  `;
+  document.head.appendChild(style);
+  // Mostrar badge de solo lectura
+  const badge=document.createElement('span');
+  badge.style.cssText='font-size:11px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:99px;margin-left:8px;font-weight:500;';
+  badge.textContent='Solo lectura';
+  document.getElementById('user-email-label').after(badge);
 }
 
 // ── SUPABASE ───────────────────────────────────────────────────────────────
@@ -1351,7 +1412,87 @@ async function saveCotizacionEdit(){
 }
 
 // ── MANTENIMIENTO ──────────────────────────────────────────────────────────
-function switchMantTab(name,btn){document.querySelectorAll('.mant-tab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.mant-panel').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('mant-'+name).classList.add('active');}
+// ── USUARIOS ───────────────────────────────────────────────────────────────
+async function loadUsuarios(){
+  const tbody=document.getElementById('usuarios-tbody');if(!tbody)return;
+  tbody.innerHTML=`<tr><td colspan="4"><div class="empty">Cargando...</div></td></tr>`;
+  const{data,error}=await sbClient.from('app_usuarios').select('*').order('created_at');
+  if(error||!data||!data.length){
+    tbody.innerHTML=`<tr><td colspan="4"><div class="empty">No hay usuarios registrados.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=data.map(u=>`
+    <tr>
+      <td>${u.email}${u.email===ADMIN_EMAIL?'<span style="font-size:10px;background:#DCFCE7;color:#166534;padding:1px 7px;border-radius:99px;margin-left:8px;">Admin</span>':''}</td>
+      <td><span style="font-size:12px;padding:2px 10px;border-radius:99px;background:${u.rol==='readonly'?'#FEF3C7':'#DCFCE7'};color:${u.rol==='readonly'?'#92400E':'#166534'};">${u.rol==='readonly'?'👁️ Solo lectura':'🔓 Completo'}</span></td>
+      <td style="color:var(--text2);font-size:12px;">${u.created_at?new Date(u.created_at).toLocaleDateString('es-CR'):'-'}</td>
+      <td style="text-align:right;">
+        ${u.email!==ADMIN_EMAIL?`
+          <button class="btn xs" onclick="openModalUsuario('${u.id}','${u.email}','${u.rol}')"><i class="ti ti-pencil"></i></button>
+          <button class="btn xs danger" onclick="deleteUsuario('${u.id}','${u.email}')"><i class="ti ti-trash"></i></button>
+        `:''}
+      </td>
+    </tr>`).join('');
+}
+function openModalUsuario(id='',email='',rol='full'){
+  document.getElementById('usuario-edit-id').value=id;
+  document.getElementById('usuario-email').value=email;
+  document.getElementById('usuario-email').disabled=!!id;
+  document.getElementById('usuario-pass').value='';
+  document.getElementById('usuario-rol').value=rol||'full';
+  document.getElementById('usuario-modal-title').textContent=id?'Editar usuario':'Nuevo usuario';
+  document.getElementById('usuario-pass-hint').textContent=id?'(dejá vacío para no cambiar)':'(requerida)';
+  document.getElementById('usuario-error').style.display='none';
+  openModal('usuario');
+}
+async function saveUsuario(){
+  const id=document.getElementById('usuario-edit-id').value;
+  const email=document.getElementById('usuario-email').value.trim();
+  const pass=document.getElementById('usuario-pass').value;
+  const rol=document.getElementById('usuario-rol').value;
+  const errEl=document.getElementById('usuario-error');
+  errEl.style.display='none';
+  if(!email){errEl.textContent='Ingresá un email.';errEl.style.display='block';return;}
+  if(!id&&!pass){errEl.textContent='La contraseña es requerida para nuevos usuarios.';errEl.style.display='block';return;}
+  const btn=document.getElementById('usuario-save-btn');
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Guardando...';
+  try{
+    if(!id){
+      // Crear usuario en Supabase Auth
+      const{data:authData,error:authError}=await sbClient.auth.admin.createUser({email,password:pass,email_confirm:true});
+      if(authError)throw new Error(authError.message);
+      // Guardar en tabla app_usuarios
+      await sbClient.from('app_usuarios').insert({id:authData.user.id,email,rol});
+    } else {
+      // Actualizar rol en app_usuarios
+      await sbClient.from('app_usuarios').update({rol}).eq('id',id);
+      // Actualizar contraseña si se ingresó una nueva
+      if(pass){
+        await sbClient.auth.admin.updateUserById(id,{password:pass});
+      }
+    }
+    closeModal('usuario');
+    loadUsuarios();
+  } catch(e){
+    errEl.textContent=e.message||'Error al guardar usuario.';
+    errEl.style.display='block';
+  }
+  btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar';
+}
+async function deleteUsuario(id,email){
+  if(!confirm(`¿Eliminar usuario ${email}? Esta acción no se puede deshacer.`))return;
+  await sbClient.from('app_usuarios').delete().eq('id',id);
+  await sbClient.auth.admin.deleteUser(id);
+  loadUsuarios();
+}
+
+function switchMantTab(name,btn){
+  document.querySelectorAll('.mant-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.mant-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('mant-'+name).classList.add('active');
+  if(name==='usuarios')loadUsuarios();
+}
 
 function renderLista(tipo,containerId){
   const cont=document.getElementById(containerId);if(!cont)return;
@@ -1504,4 +1645,3 @@ initAuth();
 </script>
 </body>
 </html>
-
