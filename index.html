@@ -413,7 +413,7 @@ textarea{resize:vertical;min-height:60px;}
     <div class="modal-header"><span class="modal-title" id="usuario-modal-title">Nuevo usuario</span><button class="btn sm" onclick="closeModal('usuario')"><i class="ti ti-x"></i></button></div>
     <input type="hidden" id="usuario-edit-id"/>
     <div class="form-group"><label class="form-label">Correo electrónico</label><input type="email" id="usuario-email" placeholder="correo@ejemplo.com"/></div>
-    <div class="form-group"><label class="form-label">Contraseña <span id="usuario-pass-hint" style="color:var(--text2);font-weight:400;">(requerida para nuevo usuario)</span></label><input type="password" id="usuario-pass" placeholder="Mínimo 8 caracteres"/></div>
+    <div class="form-group" id="usuario-pass-group"><label class="form-label">Contraseña <span id="usuario-pass-hint" style="color:var(--text2);font-weight:400;">(requerida para nuevo usuario)</span></label><input type="password" id="usuario-pass" placeholder="Mínimo 8 caracteres"/></div>
     <div class="form-group">
       <label class="form-label">Rol de acceso</label>
       <select id="usuario-rol" style="width:100%;">
@@ -1439,9 +1439,9 @@ function openModalUsuario(id='',email='',rol='full'){
   document.getElementById('usuario-email').value=email;
   document.getElementById('usuario-email').disabled=!!id;
   document.getElementById('usuario-pass').value='';
+  document.getElementById('usuario-pass-group').style.display=id?'none':'block';
   document.getElementById('usuario-rol').value=rol||'full';
   document.getElementById('usuario-modal-title').textContent=id?'Editar usuario':'Nuevo usuario';
-  document.getElementById('usuario-pass-hint').textContent=id?'(dejá vacío para no cambiar)':'(requerida)';
   document.getElementById('usuario-error').style.display='none';
   openModal('usuario');
 }
@@ -1469,15 +1469,9 @@ async function saveUsuario(){
       const{error:insErr}=await sbClient.from('app_usuarios').insert({id:uid,email,rol});
       if(insErr)throw new Error(insErr.message);
     } else {
-      // Solo actualizar el rol — contraseña debe cambiarse desde Supabase dashboard
+      // Solo actualizar el rol
       const{error:updErr}=await sbClient.from('app_usuarios').update({rol}).eq('id',id);
       if(updErr)throw new Error(updErr.message);
-      if(pass){
-        errEl.textContent='Para cambiar la contraseña de otro usuario, usá el dashboard de Supabase → Authentication → Users.';
-        errEl.style.display='block';
-        btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar';
-        return;
-      }
     }
     closeModal('usuario');
     loadUsuarios();
