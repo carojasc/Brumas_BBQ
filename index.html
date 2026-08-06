@@ -1458,17 +1458,25 @@ async function saveUsuario(){
   btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Guardando...';
   try{
     if(!id){
-      // Crear usuario en Supabase Auth
-      const{data:authData,error:authError}=await sbClient.auth.admin.createUser({email,password:pass,email_confirm:true});
+      // Crear usuario con signUp (compatible con anon key)
+      const{data:authData,error:authError}=await sbClient.auth.signUp({email,password:pass});
       if(authError)throw new Error(authError.message);
-      // Guardar en tabla app_usuarios
-      await sbClient.from('app_usuarios').insert({id:authData.user.id,email,rol});
+      const uid=authData?.user?.id;
+      if(!uid)throw new Error('No se pudo obtener el ID del usuario creado.');
+      // Confirmar email directamente en la tabla (evita el link de correo)
+      await sbClient.rpc('confirm_user_email',{user_email:email}).catch(()=>{});
+      // Guardar rol en app_usuarios
+      const{error:insErr}=await sbClient.from('app_usuarios').insert({id:uid,email,rol});
+      if(insErr)throw new Error(insErr.message);
     } else {
-      // Actualizar rol en app_usuarios
-      await sbClient.from('app_usuarios').update({rol}).eq('id',id);
-      // Actualizar contraseña si se ingresó una nueva
+      // Solo actualizar el rol — contraseña debe cambiarse desde Supabase dashboard
+      const{error:updErr}=await sbClient.from('app_usuarios').update({rol}).eq('id',id);
+      if(updErr)throw new Error(updErr.message);
       if(pass){
-        await sbClient.auth.admin.updateUserById(id,{password:pass});
+        errEl.textContent='Para cambiar la contraseña de otro usuario, usá el dashboard de Supabase → Authentication → Users.';
+        errEl.style.display='block';
+        btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar';
+        return;
       }
     }
     closeModal('usuario');
@@ -1481,8 +1489,9 @@ async function saveUsuario(){
 }
 async function deleteUsuario(id,email){
   if(!confirm(`¿Eliminar usuario ${email}? Esta acción no se puede deshacer.`))return;
-  await sbClient.from('app_usuarios').delete().eq('id',id);
-  await sbClient.auth.admin.deleteUser(id);
+  // Solo eliminar de app_usuarios — el usuario de Auth queda inactivo sin acceso a datos
+  const{error}=await sbClient.from('app_usuarios').delete().eq('id',id);
+  if(error){alert('Error al eliminar: '+error.message);return;}
   loadUsuarios();
 }
 
