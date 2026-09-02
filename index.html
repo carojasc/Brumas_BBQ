@@ -241,6 +241,8 @@ textarea{resize:vertical;min-height:60px;}
     <table><thead><tr>
       <th style="width:70px">ID</th><th style="width:150px">Nombre</th><th style="width:90px">Categoría</th>
       <th style="width:70px">Cantidad</th><th style="width:65px">Unidad</th><th style="width:95px">Costo (₡)</th>
+      <th style="width:75px;color:#B45309;">Merma%</th>
+      <th style="width:110px;color:#854F0B;">Costo real</th>
       <th style="width:110px;color:#854F0B;">Costo +margen</th>
       <th style="width:110px">Proveedor</th><th style="width:100px">Observaciones</th><th style="width:84px"></th>
     </tr></thead><tbody id="inv-tbody"></tbody></table>
@@ -441,7 +443,17 @@ textarea{resize:vertical;min-height:60px;}
     <div class="form-row-3">
       <div class="form-group"><label class="form-label">Cantidad</label><input type="number" id="inv-cantidad" placeholder="1" min="0" step="0.01"/></div>
       <div class="form-group"><label class="form-label">Unidad</label><select id="inv-unidad" onchange="document.getElementById('inv-hint-unit').textContent=this.value"></select></div>
-      <div class="form-group"><label class="form-label">Costo (₡)</label><input type="number" id="inv-costo" placeholder="0"/></div>
+      <div class="form-group"><label class="form-label">Costo (₡)</label><input type="number" id="inv-costo" placeholder="0" oninput="updateCostoRealPreview()"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">% Merma <span style="color:var(--text2);font-weight:400;">(pérdida en preparación)</span></label>
+        <input type="number" id="inv-merma" placeholder="0" min="0" max="99" step="0.5" oninput="updateCostoRealPreview()"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Costo real por unidad</label>
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:8px 12px;font-size:13px;font-weight:500;color:#854F0B;" id="inv-costo-real-preview">₡0</div>
+      </div>
     </div>
     <div class="form-group"><div style="background:var(--bg2);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:var(--text2);"><i class="ti ti-info-circle" style="font-size:14px;vertical-align:-2px;margin-right:4px;"></i>Costo por <strong id="inv-hint-unit">unid</strong>.</div></div>
     <div class="form-row">
@@ -567,6 +579,8 @@ let parsedImportRows=[], xlsxFullData=null, importMode='xlsx';
 // Margen de inflación de precios (se guarda en localStorage)
 let margenInflacion=parseFloat(localStorage.getItem('brumas_margen_inflacion')||'10');
 let currentUserRole='full'; // 'full' o 'readonly'
+// Costo real ajustado por merma: si tiene 20% merma, costo real = costo / 0.80
+function costoReal(inv){const m=inv.merma||0;return m>0?inv.costo/(1-m/100):inv.costo;}
 function costoConMargen(costo){return costo*(1+margenInflacion/100);}
 function setMargenInflacion(val){margenInflacion=Math.max(0,parseFloat(val)||0);localStorage.setItem('brumas_margen_inflacion',margenInflacion);renderInventario();}
 const INV_COLS=['ID','Nombre','Categoria','Cantidad','Unidad','Costo (₡)','Proveedor','Observaciones'];
@@ -637,7 +651,7 @@ async function loadAllData(){
       sbClient.from('listas_config').select('*').order('orden'),
       sbClient.from('cotizaciones').select('*').order('created_at',{ascending:false}).limit(50)
     ]);
-    invData=(r1.data||[]).map(r=>({id:r.id,nombre:r.nombre,categoria:r.categoria,cantidad:r.cantidad,unidad:r.unidad,costo:r.costo,proveedor:r.proveedor||'',obs:r.obs||''}));
+    invData=(r1.data||[]).map(r=>({id:r.id,nombre:r.nombre,categoria:r.categoria,cantidad:r.cantidad,unidad:r.unidad,costo:r.costo,merma:r.merma||0,proveedor:r.proveedor||'',obs:r.obs||''}));
     cfData=(r2.data||[]).map(r=>{
       let items=r.items;
       if(typeof items==='string'){try{items=JSON.parse(items);}catch(e){items=null;}}
@@ -676,7 +690,7 @@ function showSection(name,btn){
 }
 
 function openModal(type){
-  if(type==='inv'){document.getElementById('inv-edit-id').value='';document.getElementById('inv-modal-title').textContent='Agregar insumo';['inv-nombre','inv-obs'].forEach(id=>document.getElementById(id).value='');document.getElementById('inv-costo').value='';document.getElementById('inv-cantidad').value='';populateInvSelects();}
+  if(type==='inv'){document.getElementById('inv-edit-id').value='';document.getElementById('inv-modal-title').textContent='Agregar insumo';['inv-nombre','inv-obs'].forEach(id=>document.getElementById(id).value='');document.getElementById('inv-costo').value='';document.getElementById('inv-cantidad').value='';document.getElementById('inv-merma').value='0';document.getElementById('inv-costo-real-preview').textContent='₡0';populateInvSelects();}
   if(type==='cf'){document.getElementById('cf-edit-id').value='';document.getElementById('cf-modal-title').textContent='Nueva receta';document.getElementById('cf-nombre').value='';document.getElementById('cf-ingredients-container').innerHTML='';cfPickerCounter=0;buildCFIngredients();document.getElementById('cf-total').textContent='₡0';}
   if(type==='mn'){document.getElementById('mn-edit-id').value='';document.getElementById('mn-modal-title').textContent='Nuevo menú';document.getElementById('mn-nombre').value='';document.getElementById('mn-desc').value='';document.getElementById('mn-combos-container').innerHTML='';document.getElementById('mn-total-costo').textContent='₡0';addComboBlock();}
   document.getElementById('modal-'+type).classList.add('open');
@@ -698,7 +712,7 @@ function populateInvSelects(){
 
 async function saveInventario(){
   const editId=document.getElementById('inv-edit-id').value;
-  const item={id:editId||nextId('INS',invData),nombre:document.getElementById('inv-nombre').value.trim(),categoria:document.getElementById('inv-cat').value,cantidad:parseFloat(document.getElementById('inv-cantidad').value)||null,unidad:document.getElementById('inv-unidad').value,costo:parseFloat(document.getElementById('inv-costo').value)||0,proveedor:document.getElementById('inv-proveedor-sel').value,obs:document.getElementById('inv-obs').value.trim()};
+  const item={id:editId||nextId('INS',invData),nombre:document.getElementById('inv-nombre').value.trim(),categoria:document.getElementById('inv-cat').value,cantidad:parseFloat(document.getElementById('inv-cantidad').value)||null,unidad:document.getElementById('inv-unidad').value,costo:parseFloat(document.getElementById('inv-costo').value)||0,merma:parseFloat(document.getElementById('inv-merma').value)||0,proveedor:document.getElementById('inv-proveedor-sel').value,obs:document.getElementById('inv-obs').value.trim()};
   if(!item.nombre)return alert('Ingresá el nombre del insumo.');
   if(editId){const idx=invData.findIndex(i=>i.id===editId);if(idx>=0)invData[idx]=item;}else invData.push(item);
   closeModal('inv');renderInventario();recalcCFs();
@@ -750,7 +764,7 @@ function renderInvRows(data, query='', cat=''){
     if(clearBtn)clearBtn.style.display='none';
   }
   if(!filtered.length){
-    tbody.innerHTML=`<tr><td colspan="10"><div class="empty"><i class="ti ti-search"></i>${q||cat?'Sin resultados para tu búsqueda. <a href="#" onclick="clearInvSearch();return false;" style="color:var(--brand);">Limpiar filtro</a>':'Sin insumos aún.'}</div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="12"><div class="empty"><i class="ti ti-search"></i>${q||cat?'Sin resultados para tu búsqueda. <a href="#" onclick="clearInvSearch();return false;" style="color:var(--brand);">Limpiar filtro</a>':'Sin insumos aún.'}</div></td></tr>`;
     return;
   }
   function hl(text){
@@ -765,7 +779,9 @@ function renderInvRows(data, query='', cat=''){
       <td style="text-align:right;">${i.cantidad!==null?i.cantidad:'—'}</td>
       <td><span class="unit-pill">${i.unidad}</span></td>
       <td style="text-align:right;">${fmtMoney(i.costo)}</td>
-      <td style="text-align:right;color:#854F0B;font-weight:500;">${fmtMoney(costoConMargen(i.costo))}</td>
+      <td style="text-align:right;color:#B45309;">${i.merma>0?i.merma+'%':'—'}</td>
+      <td style="text-align:right;color:#854F0B;font-weight:500;">${fmtMoney(costoReal(i))}</td>
+      <td style="text-align:right;color:#854F0B;font-weight:500;">${fmtMoney(costoConMargen(costoReal(i)))}</td>
       <td>${hl(i.proveedor||'—')}</td>
       <td style="color:var(--text2);font-size:12px;">${i.obs||'—'}</td>
       <td><div style="display:flex;gap:4px;"><button class="btn sm" onclick="editInv('${i.id}')"><i class="ti ti-edit"></i></button><button class="btn sm danger" onclick="deleteInv('${i.id}')"><i class="ti ti-trash"></i></button></div></td>
@@ -785,6 +801,12 @@ function clearInvSearch(){
   renderInvRows(invData,'','');
 }
 
+function updateCostoRealPreview(){
+  const costo=parseFloat(document.getElementById('inv-costo').value)||0;
+  const merma=parseFloat(document.getElementById('inv-merma').value)||0;
+  const real=merma>0?costo/(1-merma/100):costo;
+  document.getElementById('inv-costo-real-preview').textContent=fmtMoney(real)+(merma>0?` (÷${(1-merma/100).toFixed(2)})`:'');
+}
 function editInv(id){
   const i=invData.find(x=>x.id===id);if(!i)return;
   document.getElementById('inv-edit-id').value=i.id;
@@ -793,6 +815,8 @@ function editInv(id){
   document.getElementById('inv-obs').value=i.obs;
   document.getElementById('inv-cantidad').value=i.cantidad!==null?i.cantidad:'';
   document.getElementById('inv-costo').value=i.costo;
+  document.getElementById('inv-merma').value=i.merma||0;
+  updateCostoRealPreview();
   populateInvSelects();
   document.getElementById('inv-cat').value=i.categoria;
   document.getElementById('inv-unidad').value=i.unidad;
@@ -1142,7 +1166,7 @@ function calcMenuCostoPorPersona(mn){
       const id=typeof item==='object'?item.id:item;
       const qty=typeof item==='object'?(item.qty||1):1;
       const inv=invData.find(i=>i.id===id);const cf=cfData.find(c=>c.id===id);
-      const costoBase=(inv?inv.costo:0)+(cf?cf.total:0);
+      const costoBase=(inv?costoReal(inv):0)+(cf?cf.total:0);
       return s+costoConMargen(costoBase)*qty;
     },0);
   },0);
