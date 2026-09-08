@@ -105,9 +105,9 @@ textarea{resize:vertical;min-height:60px;}
 .combo-block{background:var(--bg2);border-radius:var(--radius);padding:12px;margin-bottom:10px;border:0.5px solid var(--border);}
 .combo-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .combo-title{font-size:13px;font-weight:500;}
-.combo-item-row{display:grid;grid-template-columns:1fr 75px 90px auto;gap:6px;margin-bottom:6px;align-items:center;}
+.combo-item-row{display:grid;grid-template-columns:1fr 75px 90px 90px auto;gap:6px;margin-bottom:6px;align-items:center;}
 .combo-item-row .item-subtotal{font-size:11px;color:var(--green);text-align:right;padding:8px 4px;white-space:nowrap;}
-.combo-col-header{display:grid;grid-template-columns:1fr 75px 90px auto;gap:6px;margin-bottom:4px;}
+.combo-col-header{display:grid;grid-template-columns:minmax(140px,1fr) 70px 100px 85px auto;gap:6px;margin-bottom:4px;}
 .combo-col-header span{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;padding:0 2px;}
 .add-item-btn{font-size:11px;color:var(--brand);cursor:pointer;background:none;border:none;font-family:var(--font);padding:2px 0;display:flex;align-items:center;gap:4px;}
 .add-item-btn:hover{text-decoration:underline;}
@@ -160,6 +160,24 @@ textarea{resize:vertical;min-height:60px;}
 .cot-detail-box{background:var(--bg2);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;}
 .cot-detail-title{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;}
 @media(max-width:700px){.cot-grid{grid-template-columns:1fr;}.nav{flex-wrap:wrap;}}
+/* Fase 7: componentes del formulario, conserva los tokens existentes. */
+.f7-row,.f7-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.f7-row{padding:12px 0;border-bottom:1px solid var(--border);margin-bottom:12px}
+.f7-row .form-group{min-width:0;margin:0}.f7-row input,.f7-row select{width:100%;min-width:0}
+.f7-row-foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f7-note{font-size:12px;color:var(--text2);line-height:1.5;margin:8px 0}
+.f7-error{color:#991b1b;font-size:13px;line-height:1.5}.f7-error:empty{display:none}
+.f7-estado{padding:10px;border-radius:8px;margin-top:12px;font-weight:600}
+.f7-estado.verde{background:#dcfce7;color:#166534}.f7-estado.amarillo{background:#fef3c7;color:#92400e}.f7-estado.rojo{background:#fee2e2;color:#991b1b}
+#cot-resumen .result-row{gap:12px;align-items:start}#cot-resumen strong{text-align:right;overflow-wrap:anywhere}
+#sec-cotizar summary{cursor:pointer}#sec-cotizar [hidden]{display:none!important}
+@media(max-width:520px){.f7-row,.f7-grid{grid-template-columns:1fr}}
+.f8-filtros{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:12px 0}.f8-filtros .form-group{flex:1;min-width:140px;margin:0}
+.f8-modal{width:min(1000px,96vw)!important;max-width:96vw}.f8-modal details{margin:16px 0}.f8-modal summary{font-weight:600;cursor:pointer;padding:10px 0}.f8-modal .table-wrap{margin:10px 0}.f8-modal td{white-space:normal;overflow-wrap:anywhere}
+.f8-badge{display:inline-block;background:var(--brand-light);color:var(--brand-dark);padding:3px 9px;border-radius:12px;margin:6px 5px 0 0;font-size:12px}
+.f8-check{display:flex;gap:8px;align-items:center;margin:12px 0}.f8-check input{width:auto}.f8-total{font-weight:600;text-align:right;margin-top:12px}
+#dashboard-content h3{margin:22px 0 10px}#dashboard-content .metric-value{font-size:22px}#lc-tabla th,#lc-tabla td{white-space:normal}
+@media(max-width:600px){.cf-ing-row{grid-template-columns:1fr 70px!important}.cf-ing-row .item-picker{grid-column:1/-1}.f8-modal{padding:14px!important}.hist-card{flex-wrap:wrap;gap:10px}.hist-actions{flex-wrap:wrap}}
 </style>
 </head>
 <body>
@@ -183,7 +201,7 @@ textarea{resize:vertical;min-height:60px;}
     <button class="nav-btn" onclick="showSection('menu',this)"><i class="ti ti-tools-kitchen-2"></i> Menús</button>
     <button class="nav-btn" onclick="showSection('cotizar',this)"><i class="ti ti-receipt"></i> Cotizar</button>
     <button class="nav-btn" onclick="showSection('historial',this)"><i class="ti ti-history"></i> Historial</button>
-    <button class="nav-btn admin-btn" id="nav-mant" onclick="showSection('mantenimiento',this)" style="display:none;"><i class="ti ti-settings"></i> Mantenimiento</button>
+    <button class="nav-btn" onclick="showSection('dashboard',this)"><i class="ti ti-chart-bar"></i> Dashboard</button><button class="nav-btn admin-btn" id="nav-mant" onclick="showSection('mantenimiento',this)" style="display:none;"><i class="ti ti-settings"></i> Mantenimiento</button>
   </nav>
   <div class="header-right">
     <div class="save-bar"><span class="sync-dot ok" id="sync-dot"></span><span id="sync-label">Sincronizado</span></div>
@@ -260,9 +278,12 @@ textarea{resize:vertical;min-height:60px;}
   </div>
   <div class="table-wrap">
     <table><thead><tr>
-      <th style="width:70px">ID</th><th style="width:180px">Nombre</th>
+      <th style="width:70px">ID</th><th style="width:160px">Nombre</th>
       <th>Ingredientes</th>
-      <th style="width:100px">Total (₡)</th><th style="width:84px"></th>
+      <th style="width:100px">Total (₡)</th>
+      <th style="width:110px;color:var(--text2);">Producción</th>
+      <th style="width:110px;color:#854F0B;">Costo/unidad</th>
+      <th style="width:84px"></th>
     </tr></thead><tbody id="cf-tbody"></tbody></table>
   </div>
 </div>
@@ -272,6 +293,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="section-header">
     <span class="section-title">Menús</span>
     <div class="btn-group">
+      <button class="btn" onclick="openListaCompra()"><i class="ti ti-shopping-cart"></i> Lista de compra</button>
       <button class="btn primary" onclick="openModal('mn')"><i class="ti ti-plus"></i> Nuevo menú</button>
     </div>
   </div>
@@ -281,25 +303,27 @@ textarea{resize:vertical;min-height:60px;}
 <!-- COTIZAR -->
 <div id="sec-cotizar" class="section">
   <div class="section-header">
-    <span class="section-title">Nueva cotización</span>
+    <span class="section-title" id="f7-titulo">Nueva cotización</span><button class="btn" onclick="nuevaCotizacionF7()">Nueva / limpiar formulario</button>
   </div>
   <div class="cot-grid">
     <div>
       <div class="cotizacion-card">
         <div class="cot-section-title">Datos del evento</div>
-        <div class="form-group"><label class="form-label">Nombre del cliente</label><input type="text" id="c-cliente" placeholder="Nombre del cliente"/></div>
+        <div class="form-group"><label class="form-label">Nombre del cliente</label><input type="text" id="c-cliente" oninput="recalc()" placeholder="Nombre del cliente"/></div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Fecha</label><input type="date" id="c-fecha"/></div>
-          <div class="form-group"><label class="form-label">Cantidad de personas</label><input type="number" id="c-personas" min="1" value="20" onchange="recalc()"/></div>
+          <div class="form-group"><label class="form-label">Fecha</label><input type="date" id="c-fecha" onchange="recalc()"/></div>
+          <div class="form-group"><label class="form-label">Personas facturadas</label><input type="number" id="c-personas" min="1" value="20" onchange="recalc()"/></div>
         </div>
-        <div class="form-group"><label class="form-label">Menú</label><select id="c-menu" onchange="recalc()"><option value="">— Seleccionar —</option></select></div>
-        <div class="form-group"><label class="form-label">Notas</label><textarea id="c-notas" placeholder="Observaciones adicionales..." style="min-height:50px;"></textarea></div>
+        <div class="form-group"><label class="form-label">Menú</label><select id="c-menu" onchange="actualizarIngredientesF7()"><option value="">— Seleccionar —</option></select></div>
+        <div class="form-group"><label class="form-label" for="c-seguridad">Factor de seguridad (%)</label><input id="c-seguridad" type="number" min="0" value="0" step="any" oninput="recalc()"><small>Se redondean hacia arriba las porciones de producción. Se factura según las personas indicadas.</small></div>
+<p id="f7-base-info" class="f7-note"></p><button class="btn sm" onclick="actualizarIngredientesF7()">Actualizar precios de ingredientes</button>
+<div class="form-group"><label class="form-label">Notas</label><textarea id="c-notas" placeholder="Observaciones adicionales..." style="min-height:50px;"></textarea></div>
       </div>
       <div class="cotizacion-card">
-        <div class="cot-section-title">Personal y equipo</div>
+        <div class="cot-section-title">Mano de obra y equipos</div>
         <!-- Parrilleros dinámicos -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <span style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;">Parrilleros</span>
+          <span style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;">Mano de obra</span>
           <button class="btn sm primary" onclick="addParrilleroRow()"><i class="ti ti-plus"></i> Agregar</button>
         </div>
         <div id="parrilleros-container"></div>
@@ -313,21 +337,37 @@ textarea{resize:vertical;min-height:60px;}
         <div style="font-size:12px;color:var(--text2);text-align:right;margin-top:4px;">Total equipo: <span id="total-equipo-label" style="font-weight:500;color:var(--text);">₡0</span></div>
         <input type="hidden" id="c-costoequipo" value="0"/>
       </div>
-      <div class="cotizacion-card">
-        <div class="cot-section-title">Costos adicionales</div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Otros insumos (₡)</label><input type="number" id="c-otros" value="0" onchange="recalc()"/></div>
-          <div class="form-group"><label class="form-label">Margen de ganancia (%)</label><input type="number" id="c-margen" value="30" min="0" max="100" onchange="recalc()"/></div>
+      <details class="cotizacion-card" open><summary class="cot-section-title">Transporte</summary>
+        <label class="form-group"><span class="form-label">Modalidad</span><select id="c-trans-modo" onchange="recalc()"><option value="manual">Monto manual</option><option value="km">Por kilómetro</option></select></label>
+        <div id="f7-trans-manual"><label class="form-group"><span class="form-label">Monto manual (₡)</span><input id="c-trans-manual" type="number" min="0" value="0" step="any" oninput="recalc()"></label></div>
+        <div id="f7-trans-km" class="f7-grid" hidden>
+          <label class="form-group"><span class="form-label">Km ida</span><input id="c-trans-ida" type="number" min="0" value="0" step="any" oninput="recalc()"></label>
+          <label class="form-group"><span class="form-label">Km regreso</span><input id="c-trans-regreso" type="number" min="0" value="0" step="any" oninput="recalc()"></label>
+          <label class="form-group"><span class="form-label">Costo/km (₡)</span><input id="c-trans-km" type="number" min="0" value="0" step="any" oninput="recalc()"></label>
         </div>
+        <div class="f7-grid">
+          <label class="form-group"><span class="form-label">Peajes (₡)</span><input id="c-trans-peajes" type="number" min="0" value="0" step="any" oninput="recalc()"></label>
+          <label class="form-group"><span class="form-label">Parqueos (₡)</span><input id="c-trans-parqueos" type="number" min="0" value="0" step="any" oninput="recalc()"></label>
+          <label class="form-group"><span class="form-label">Viáticos (₡)</span><input id="c-trans-viaticos" type="number" min="0" value="0" step="any" oninput="recalc()"></label>
+          <label class="form-group"><span class="form-label">Otros de transporte (₡)</span><input id="c-trans-otros" type="number" min="0" value="0" step="any" oninput="recalc()"></label>
+        </div><p id="f7-trans-total" aria-live="polite"></p>
+      </details>
+      <details class="cotizacion-card" open><summary class="cot-section-title">Costos operativos</summary><div id="operativos-container"></div><button class="btn sm primary" onclick="agregarFilaF7('operativos')">Agregar operativo</button></details>
+      <details class="cotizacion-card" open><summary class="cot-section-title">Costos indirectos</summary><p class="f7-note">El indirecto por persona utiliza personas facturadas. El costo directo incluye ingredientes, mano de obra, operativos, equipos y transporte.</p><div id="indirectos-container"></div><button class="btn sm primary" onclick="agregarFilaF7('indirectos')">Agregar indirecto</button></details>
+      <div class="cotizacion-card"><div class="cot-section-title">Otros costos</div><label class="form-group"><span class="form-label">Otros costos del evento (₡)</span><input type="number" id="c-otros" min="0" value="0" step="any" oninput="recalc()"></label></div>
+      <div class="cotizacion-card"><div class="cot-section-title">Rentabilidad</div>
+        <label class="form-group"><span class="form-label">Método de rentabilidad</span><select id="c-metodo" onchange="recalc()"><option value="markup">Markup sobre costo</option><option value="margen">Margen sobre venta</option></select></label>
+        <label class="form-group"><span class="form-label">Porcentaje objetivo (%)</span><input type="number" id="c-margen" min="0" value="30" step="any" oninput="recalc()"></label>
+        <label class="form-group"><span class="form-label">Precio comercial por persona (₡)</span><input type="number" id="c-comercial" min="0" step="any" placeholder="Vacío: usar precio sugerido" oninput="recalc()"></label>
       </div>
     </div>
     <div>
       <div class="cotizacion-card" style="position:sticky;top:80px;">
         <div class="cot-section-title">Resumen de cotización</div>
-        <div id="cot-resumen"><div class="empty"><i class="ti ti-calculator"></i>Completá los datos</div></div>
+        <p id="f7-advertencias" class="f7-error" role="status"></p><div id="cot-resumen" aria-live="polite"><div class="empty"><i class="ti ti-calculator"></i>Completá los datos</div></div>
         <div id="cot-actions" style="display:none;margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn success" onclick="guardarCotizacion()"><i class="ti ti-device-floppy"></i> Guardar cotización</button>
-          <button class="btn" onclick="exportCotizacion()"><i class="ti ti-download"></i> Exportar CSV</button>
+          <button class="btn" onclick="abrirCompraCotizacion()">Lista de compra</button><button class="btn" onclick="exportarCotizacionExcel()">Exportar Excel</button><button class="btn" onclick="exportCotizacion()"><i class="ti ti-download"></i> Exportar CSV</button>
         </div>
       </div>
     </div>
@@ -340,9 +380,13 @@ textarea{resize:vertical;min-height:60px;}
     <span class="section-title">Historial de cotizaciones</span>
     <button class="btn" onclick="loadHistorial()"><i class="ti ti-refresh"></i> Actualizar</button>
   </div>
-  <div id="hist-content"><div class="empty"><i class="ti ti-history"></i>Cargando...</div></div>
+  <div id="f8-filtros-hist"></div><div id="hist-content"><div class="empty"><i class="ti ti-history"></i>Cargando...</div></div>
 </div>
 
+<div id="sec-dashboard" class="section">
+ <div class="section-header"><span class="section-title">Dashboard de eventos</span><button class="btn" onclick="loadHistorial()">Actualizar</button></div>
+ <div id="f8-filtros-dash"></div><div id="dashboard-content"></div>
+</div>
 <!-- MANTENIMIENTO -->
 <div id="sec-mantenimiento" class="section">
   <div class="section-header"><span class="section-title">⚙️ Mantenimiento de listas</span></div>
@@ -351,6 +395,11 @@ textarea{resize:vertical;min-height:60px;}
     <button class="mant-tab" onclick="switchMantTab('unidades',this)"><i class="ti ti-ruler"></i> Unidades</button>
     <button class="mant-tab" onclick="switchMantTab('proveedores',this)"><i class="ti ti-truck"></i> Proveedores</button>
     <button class="mant-tab" onclick="switchMantTab('equipos',this)"><i class="ti ti-tools"></i> Equipos</button>
+    <button class="mant-tab" onclick="switchMantTab('roles',this)"><i class="ti ti-id-badge"></i> Personal</button>
+    <button class="mant-tab" onclick="switchMantTab('operativos',this)"><i class="ti ti-flame"></i> Operativos</button>
+    <button class="mant-tab" onclick="switchMantTab('indirectos',this)"><i class="ti ti-building"></i> Indirectos</button>
+    <button class="mant-tab" onclick="switchMantTab('config-rent',this)"><i class="ti ti-chart-bar"></i> Rentabilidad</button>
+    <button class="mant-tab" onclick="switchMantTab('config-trans',this)"><i class="ti ti-car"></i> Transporte</button>
     <button class="mant-tab" onclick="switchMantTab('usuarios',this)"><i class="ti ti-users"></i> Usuarios</button>
   </div>
   <div id="mant-categorias" class="mant-panel active">
@@ -384,6 +433,100 @@ textarea{resize:vertical;min-height:60px;}
         </tr></thead>
         <tbody id="usuarios-tbody"><tr><td colspan="4"><div class="empty">Cargando usuarios...</div></td></tr></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ROLES DE PERSONAL -->
+  <div id="mant-roles" class="mant-panel">
+    <div class="section-header" style="margin-bottom:12px;">
+      <span style="font-size:13px;color:var(--text2);">Roles de personal y tarifas</span>
+      <button class="btn primary sm" onclick="openModalRol()"><i class="ti ti-plus"></i> Nuevo rol</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Rol</th><th style="width:160px;">Tarifa/hora (₡)</th><th style="width:90px;"></th></tr></thead>
+        <tbody id="roles-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- COSTOS OPERATIVOS -->
+  <div id="mant-operativos" class="mant-panel">
+    <div class="section-header" style="margin-bottom:12px;">
+      <span style="font-size:13px;color:var(--text2);">Costos operativos (carbón, desechables, etc.)</span>
+      <button class="btn primary sm" onclick="openModalOperativo()"><i class="ti ti-plus"></i> Nuevo</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Nombre</th><th>Categoría</th><th>Unidad</th><th style="width:130px;">Costo unitario</th><th style="width:90px;"></th></tr></thead>
+        <tbody id="operativos-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- COSTOS INDIRECTOS -->
+  <div id="mant-indirectos" class="mant-panel">
+    <div class="section-header" style="margin-bottom:12px;">
+      <span style="font-size:13px;color:var(--text2);">Costos indirectos configurados</span>
+      <button class="btn primary sm" onclick="openModalIndirecto()"><i class="ti ti-plus"></i> Nuevo</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Nombre</th><th style="width:160px;">Método</th><th style="width:130px;">Valor</th><th style="width:90px;"></th></tr></thead>
+        <tbody id="indirectos-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CONFIG RENTABILIDAD -->
+  <div id="mant-config-rent" class="mant-panel">
+    <div class="section-header" style="margin-bottom:12px;"><span style="font-size:13px;color:var(--text2);">Configuración de rentabilidad</span></div>
+    <div style="max-width:480px;display:flex;flex-direction:column;gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Método predeterminado</label>
+        <select id="cfg-rent-metodo" onchange="saveConfigRent()">
+          <option value="markup">Markup sobre costo</option>
+          <option value="margen">Margen sobre venta</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Objetivo predeterminado (%)</label>
+        <input type="number" id="cfg-rent-objetivo" min="1" max="99" step="0.5" onchange="saveConfigRent()"/>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:14px;">
+        <div style="font-size:12px;font-weight:500;margin-bottom:10px;color:var(--text2);">SEMÁFORO DE RENTABILIDAD</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" style="color:#166534;">🟢 Verde — margen mínimo (%)</label>
+            <input type="number" id="cfg-rent-verde" min="1" max="99" step="0.5" onchange="saveConfigRent()"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="color:#92400E;">🟡 Amarillo — margen mínimo (%)</label>
+            <input type="number" id="cfg-rent-amarillo" min="1" max="99" step="0.5" onchange="saveConfigRent()"/>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text2);">Rojo = margen por debajo del umbral amarillo</div>
+      </div>
+      <button class="btn primary" onclick="saveConfigRent()"><i class="ti ti-device-floppy"></i> Guardar configuración</button>
+    </div>
+  </div>
+
+  <!-- CONFIG TRANSPORTE -->
+  <div id="mant-config-trans" class="mant-panel">
+    <div class="section-header" style="margin-bottom:12px;"><span style="font-size:13px;color:var(--text2);">Configuración de transporte</span></div>
+    <div style="max-width:480px;display:flex;flex-direction:column;gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Modo predeterminado</label>
+        <select id="cfg-trans-modo" onchange="saveConfigTrans()">
+          <option value="manual">Monto fijo manual</option>
+          <option value="km">Por kilómetro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Costo por kilómetro (₡)</label>
+        <input type="number" id="cfg-trans-km" min="0" step="10" onchange="saveConfigTrans()"/>
+      </div>
+      <button class="btn primary" onclick="saveConfigTrans()"><i class="ti ti-device-floppy"></i> Guardar configuración</button>
     </div>
   </div>
 </div>
@@ -440,6 +583,90 @@ textarea{resize:vertical;min-height:60px;}
   </div>
 </div>
 
+<!-- MODAL LISTA DE COMPRA -->
+<div class="modal-overlay" id="modal-lista-compra">
+  <div class="modal" style="width:680px;max-height:80vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title">🛒 Lista de compra</span>
+      <button class="btn sm" onclick="closeModal('lista-compra')"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-end;flex-wrap:wrap;">
+      <div class="form-group" style="margin:0;flex:1;min-width:140px;">
+        <label class="form-label">Menú</label>
+        <select id="lc-menu" onchange="generarListaCompra()"></select>
+      </div>
+      <div class="form-group" style="margin:0;width:110px;">
+        <label class="form-label">Personas</label>
+        <input type="number" id="lc-personas" value="50" min="1" onchange="generarListaCompra()"/>
+      </div>
+      <div class="form-group" style="margin:0;width:110px;">
+        <label class="form-label">Factor seguridad %</label>
+        <input type="number" id="lc-seguridad" value="0" min="0" max="50" onchange="generarListaCompra()"/>
+      </div>
+      <button class="btn sm" onclick="exportarListaCompra()">CSV</button><button class="btn sm" onclick="exportarListaCompra('xlsx')">Excel</button>
+    </div>
+    <div id="lc-info" style="font-size:12px;color:var(--text2);margin-bottom:8px;"></div>
+    <div id="lc-tabla"></div>
+  </div>
+</div>
+
+<!-- MODAL ROL DE PERSONAL -->
+<div class="modal-overlay" id="modal-rol">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header"><span class="modal-title" id="rol-modal-title">Nuevo rol</span><button class="btn sm" onclick="closeModal('rol')"><i class="ti ti-x"></i></button></div>
+    <input type="hidden" id="rol-edit-id"/>
+    <div class="form-group"><label class="form-label">Nombre del rol</label><input type="text" id="rol-nombre" placeholder="Ej. Pitmaster"/></div>
+    <div class="form-group"><label class="form-label">Tarifa por hora (₡)</label><input type="number" id="rol-tarifa" placeholder="0" min="0"/></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn" onclick="closeModal('rol')">Cancelar</button>
+      <button class="btn primary" onclick="saveRol()"><i class="ti ti-device-floppy"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COSTO OPERATIVO -->
+<div class="modal-overlay" id="modal-operativo">
+  <div class="modal" style="width:440px;">
+    <div class="modal-header"><span class="modal-title" id="op-modal-title">Nuevo costo operativo</span><button class="btn sm" onclick="closeModal('operativo')"><i class="ti ti-x"></i></button></div>
+    <input type="hidden" id="op-edit-id"/>
+    <div class="form-group"><label class="form-label">Nombre</label><input type="text" id="op-nombre" placeholder="Ej. Carbón, Hielo, Guantes"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Unidad</label><input type="text" id="op-unidad" placeholder="Ej. kg, bolsa, caja"/></div>
+      <div class="form-group"><label class="form-label">Costo unitario (₡)</label><input type="number" id="op-costo" placeholder="0" min="0"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Proveedor (opcional)</label><input type="text" id="op-proveedor" placeholder=""/></div>
+    <div class="form-group"><label class="form-label">Observaciones</label><input type="text" id="op-obs" placeholder=""/></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn" onclick="closeModal('operativo')">Cancelar</button>
+      <button class="btn primary" onclick="saveOperativo()"><i class="ti ti-device-floppy"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COSTO INDIRECTO -->
+<div class="modal-overlay" id="modal-indirecto">
+  <div class="modal" style="width:440px;">
+    <div class="modal-header"><span class="modal-title" id="ind-modal-title">Nuevo costo indirecto</span><button class="btn sm" onclick="closeModal('indirecto')"><i class="ti ti-x"></i></button></div>
+    <input type="hidden" id="ind-edit-id"/>
+    <div class="form-group"><label class="form-label">Nombre</label><input type="text" id="ind-nombre" placeholder="Ej. Alquiler, Administración"/></div>
+    <div class="form-group">
+      <label class="form-label">Método de aplicación</label>
+      <select id="ind-metodo" onchange="updateIndValorLabel()">
+        <option value="fijo">Monto fijo por evento</option>
+        <option value="por_persona">Monto por persona</option>
+        <option value="pct_ingredientes">% sobre ingredientes</option>
+        <option value="pct_directo">% sobre costo directo</option>
+        <option value="manual">Manual (se ingresa en cotización)</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label" id="ind-valor-label">Valor (₡)</label><input type="number" id="ind-valor" placeholder="0" min="0" step="0.01"/></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn" onclick="closeModal('indirecto')">Cancelar</button>
+      <button class="btn primary" onclick="saveIndirecto()"><i class="ti ti-device-floppy"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL INVENTARIO -->
 <div class="modal-overlay" id="modal-inv">
   <div class="modal">
@@ -457,11 +684,17 @@ textarea{resize:vertical;min-height:60px;}
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">% Merma <span style="color:var(--text2);font-weight:400;">(pérdida en preparación)</span></label>
-        <input type="number" id="inv-merma" placeholder="0" min="0" max="99" step="0.5" oninput="updateCostoRealPreview()"/>
+        <input type="number" id="inv-merma" placeholder="0" min="0" max="99" step="0.5" oninput="syncMermaRendimiento('merma')"/>
       </div>
       <div class="form-group">
-        <label class="form-label">Costo real por unidad</label>
-        <div style="background:var(--bg2);border-radius:var(--radius);padding:8px 12px;font-size:13px;font-weight:500;color:#854F0B;" id="inv-costo-real-preview">₡0</div>
+        <label class="form-label">% Rendimiento <span style="color:var(--text2);font-weight:400;">(= 100 - merma)</span></label>
+        <input type="number" id="inv-rendimiento" placeholder="100" min="1" max="100" step="0.5" oninput="syncMermaRendimiento('rendimiento')"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Costo real por unidad utilizable</label>
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:8px 12px;font-size:13px;font-weight:500;color:#854F0B;display:flex;justify-content:space-between;" id="inv-costo-real-preview">
+        <span>₡0</span><span style="font-size:11px;font-weight:400;color:var(--text2);">Costo compra ÷ rendimiento</span>
       </div>
     </div>
     <div class="form-group"><div style="background:var(--bg2);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:var(--text2);"><i class="ti ti-info-circle" style="font-size:14px;vertical-align:-2px;margin-right:4px;"></i>Costo por <strong id="inv-hint-unit">unid</strong>.</div></div>
@@ -483,7 +716,7 @@ textarea{resize:vertical;min-height:60px;}
       <span style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;">Ingredientes</span>
       <button class="add-item-btn" onclick="addCFIngredient()"><i class="ti ti-plus" style="font-size:12px;"></i> Agregar ingrediente</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 75px 90px auto;gap:6px;margin-bottom:4px;">
+    <div style="display:grid;grid-template-columns:minmax(140px,1fr) 70px 100px 85px auto;gap:6px;margin-bottom:4px;">
       <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;padding:0 2px;">Ingrediente</span>
       <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;padding:0 2px;">Cantidad</span>
       <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;padding:0 2px;">Subtotal</span>
@@ -491,6 +724,32 @@ textarea{resize:vertical;min-height:60px;}
     </div>
     <div id="cf-ingredients-container"></div>
     <div class="total-box" style="margin-top:10px;"><span style="font-size:13px;color:var(--text2);">Total receta</span><span style="font-size:16px;font-weight:500;color:var(--green);" id="cf-total">₡0</span></div>
+    <!-- Rendimiento de producción -->
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:12px;margin-top:10px;">
+      <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">RENDIMIENTO DE PRODUCCIÓN</div>
+      <div class="form-row" style="margin-bottom:0;">
+        <div class="form-group">
+          <label class="form-label">Cantidad que produce</label>
+          <input type="number" id="cf-rend-cantidad" placeholder="Ej. 1500" min="0" step="0.01" oninput="updateCFCostoPorUnidad()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unidad de producción</label>
+          <select id="cf-rend-unidad" onchange="updateCFCostoPorUnidad()">
+            <option value="unidades">Unidades</option>
+            <option value="porciones">Porciones</option>
+            <option value="gramos">Gramos</option>
+            <option value="kg">Kilogramos</option>
+            <option value="ml">Mililitros</option>
+            <option value="litros">Litros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Costo por unidad producida</label>
+          <div style="background:var(--bg);border-radius:var(--radius);padding:8px 12px;font-size:13px;font-weight:500;color:#854F0B;" id="cf-costo-por-unidad">₡—</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px;">Si la receta produce 1.500 ml de chimichurri y cuesta ₡5.000 → costo por ml = ₡3,33</div>
+    </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;"><button class="btn" onclick="closeModal('cf')">Cancelar</button><button class="btn primary" onclick="saveCostoFijo()">Guardar</button></div>
   </div>
 </div>
@@ -539,6 +798,18 @@ textarea{resize:vertical;min-height:60px;}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-evento"><div class="modal f8-modal">
+ <div class="modal-header"><span class="modal-title" id="evento-titulo">Detalle del evento</span><button class="btn sm" onclick="closeModal('evento')">Cerrar</button></div>
+ <div class="btn-group"><button class="btn" onclick="abrirCompraCotizacion(detalleEventoId)">Lista de compra guardada</button><button class="btn" onclick="exportarCotizacionExcel(detalleEventoId)">Exportar Excel</button></div>
+ <div id="evento-resumen"></div><div id="evento-desglose"></div>
+ <details open><summary>Estado y seguimiento</summary><div class="f8-filtros"><label class="form-group"><span class="form-label">Estado del evento</span><select id="evento-estado"></select></label><button class="btn success" onclick="guardarEstadoEvento()">Guardar estado</button></div><div id="evento-auditoria"></div></details>
+ <details open><summary>Presupuestado vs. real</summary><p class="f7-note">Completá los gastos después del evento. Vacío significa pendiente; escribí 0 si no hubo gasto. El presupuesto se conserva.</p>
+ <div id="evento-reales" class="f7-grid"></div>
+ <label class="form-group"><span class="form-label">Venta real del evento (₡)</span><input id="real-venta" type="number" min="0" step="any" oninput="recalcResultadoReal()"></label>
+ <label class="form-group"><span class="form-label">Notas del resultado real</span><textarea id="real-notas"></textarea></label>
+ <label class="f8-check"><input id="real-completo" type="checkbox" onchange="recalcResultadoReal()"> Todos los costos y la venta real están completos</label>
+ <div id="real-comparacion"></div><button class="btn success" onclick="guardarResultadoReal()">Guardar resultado real</button></details>
+</div></div>
 <!-- MODAL EDITAR COTIZACION -->
 <div class="modal-overlay" id="modal-cot-edit">
   <div class="modal" style="width:560px;">
@@ -587,14 +858,16 @@ if(CONFIGURED) sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_AN
 
 let invData=[], cfData=[], menuData=[], cotizaciones=[];
 let listasConfig={categorias:[],unidades:[],proveedores:[],equipos:[]};
+let rolesPersonal=[], costosOperativos=[], costosIndirectos=[];
+let configRentabilidad={metodo_default:'markup',objetivo_default:30,semaforo_verde:30,semaforo_amarillo:20};
+let configTransporte={costo_km:500,modo_default:'manual'};
 let parsedImportRows=[], xlsxFullData=null, importMode='xlsx';
 // Margen de inflación de precios (se guarda en localStorage)
 let margenInflacion=parseFloat(localStorage.getItem('brumas_margen_inflacion')||'10');
-let currentUserRole='full'; // 'full' o 'readonly'
+let currentUserRole='readonly'; // 'full' o 'readonly'
 // Costo real ajustado por merma: si tiene 20% merma, costo real = costo / 0.80
-function costoReal(inv){const m=inv.merma||0;return m>0?inv.costo/(1-m/100):inv.costo;}
 function costoConMargen(costo){return costo*(1+margenInflacion/100);}
-function setMargenInflacion(val){
+function setMargenInflacion(val){if(!permitirEscrituraF7())return;
   margenInflacion=Math.max(0,parseFloat(val)||0);
   localStorage.setItem('brumas_margen_inflacion',margenInflacion);
   // Guardar en Supabase para sincronizar entre dispositivos
@@ -637,7 +910,7 @@ async function enterApp(user){
   if(user.email===ADMIN_EMAIL)document.getElementById('nav-mant').style.display='flex';
   // Cargar rol del usuario desde la tabla app_usuarios
   const{data:uData}=await sbClient.from('app_usuarios').select('rol').eq('email',user.email).single();
-  currentUserRole=(uData&&uData.rol==='readonly')?'readonly':'full';
+  currentUserRole=(uData&&uData.rol==='full')?'full':'readonly';
   applyRoleRestrictions();
   await loadAllData();
 }
@@ -662,13 +935,18 @@ function applyRoleRestrictions(){
 async function loadAllData(){
   setSyncStatus('loading','Cargando...');
   try{
-    const[r1,r2,r3,r4,r5,r6]=await Promise.all([
+    const[r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11]=await Promise.all([
       sbClient.from('inventario').select('*').order('id'),
       sbClient.from('costos_fijos').select('*').order('id'),
       sbClient.from('menus').select('*').order('id'),
       sbClient.from('listas_config').select('*').order('orden'),
       sbClient.from('cotizaciones').select('*').order('created_at',{ascending:false}).limit(50),
-      sbClient.from('app_config').select('*')
+      sbClient.from('app_config').select('*'),
+      sbClient.from('roles_personal').select('*').order('nombre'),
+      sbClient.from('costos_operativos').select('*').order('nombre'),
+      sbClient.from('costos_indirectos').select('*').order('nombre'),
+      sbClient.from('config_rentabilidad').select('*'),
+      sbClient.from('config_transporte').select('*')
     ]);
     invData=(r1.data||[]).map(r=>({id:r.id,nombre:r.nombre,categoria:r.categoria,cantidad:r.cantidad,unidad:r.unidad,costo:r.costo,merma:r.merma||0,proveedor:r.proveedor||'',obs:r.obs||''}));
     cfData=(r2.data||[]).map(r=>{
@@ -681,26 +959,37 @@ async function loadAllData(){
         const inv=invData.find(x=>x.id===item.id);
         return s+(inv?inv.costo*(item.qty||1):0);
       },0);
-      return{id:r.id,nombre:r.nombre,items,p1:r.p1||'',p2:r.p2||'',p3:r.p3||'',p4:r.p4||'',total:total||r.total||0};
+      return{id:r.id,nombre:r.nombre,items,p1:r.p1||'',p2:r.p2||'',p3:r.p3||'',p4:r.p4||'',total:total||r.total||0,rendimiento_cantidad:r.rendimiento_cantidad,rendimiento_unidad:r.rendimiento_unidad,costo_por_unidad_rendimiento:r.costo_por_unidad_rendimiento};
     });
     menuData=(r3.data||[]).map(r=>({id:r.id,nombre:r.nombre,descripcion:r.descripcion||'',combos:r.combos||[]}));
     const lc=r4.data||[];
     listasConfig={categorias:lc.filter(x=>x.tipo==='categoria'),unidades:lc.filter(x=>x.tipo==='unidad'),proveedores:lc.filter(x=>x.tipo==='proveedor'),equipos:lc.filter(x=>x.tipo==='equipo')};
     cotizaciones=r5.data||[];
-    // Cargar margen de inflación desde Supabase
     const cfg=r6.data||[];
     const cfgMargen=cfg.find(c=>c.clave==='margen_inflacion');
-    if(cfgMargen){
-      margenInflacion=parseFloat(cfgMargen.valor)||10;
-      localStorage.setItem('brumas_margen_inflacion',margenInflacion);
-    }
+    if(cfgMargen){margenInflacion=Number.isFinite(Number(cfgMargen.valor))?Number(cfgMargen.valor):10;localStorage.setItem('brumas_margen_inflacion',margenInflacion);}
+    rolesPersonal=(r7.data||[]).filter(r=>r.activo!==false);
+    costosOperativos=(r8.data||[]).filter(r=>r.activo!==false);
+    costosIndirectos=(r9.data||[]).filter(r=>r.activo!==false);
+    const cfgRent=r10.data||[];
+    cfgRent.forEach(c=>{
+      if(c.clave==='metodo_default')configRentabilidad.metodo_default=c.valor;
+      if(c.clave==='objetivo_default')configRentabilidad.objetivo_default=Number.isFinite(Number(c.valor))?Number(c.valor):30;
+      if(c.clave==='semaforo_verde')configRentabilidad.semaforo_verde=Number.isFinite(Number(c.valor))?Number(c.valor):30;
+      if(c.clave==='semaforo_amarillo')configRentabilidad.semaforo_amarillo=Number.isFinite(Number(c.valor))?Number(c.valor):20;
+    });
+    const cfgTrans=r11.data||[];
+    cfgTrans.forEach(c=>{
+      if(c.clave==='costo_km')configTransporte.costo_km=Number.isFinite(Number(c.valor))?Number(c.valor):500;
+      if(c.clave==='modo_default')configTransporte.modo_default=c.valor||'manual';
+    });
     setSyncStatus('ok','Sincronizado');
   }catch(e){setSyncStatus('error','Error al cargar');console.error(e);}
   renderInventario();renderCF();renderMenus();renderTodasListas();
 }
 
-async function dbUpsert(table,row){setSyncStatus('loading','Guardando...');const{error}=await sbClient.from(table).upsert(row,{onConflict:'id'});setSyncStatus(error?'error':'ok',error?'Error':'Sincronizado');if(error)console.error(error);}
-async function dbDelete(table,id){setSyncStatus('loading','Guardando...');const{error}=await sbClient.from(table).delete().eq('id',id);setSyncStatus(error?'error':'ok',error?'Error':'Sincronizado');}
+async function dbUpsert(table,row){if(!permitirEscrituraF7())return;setSyncStatus('loading','Guardando...');const{error}=await sbClient.from(table).upsert(row,{onConflict:'id'});setSyncStatus(error?'error':'ok',error?'Error':'Sincronizado');if(error)console.error(error);}
+async function dbDelete(table,id){if(!permitirEscrituraF7())return;setSyncStatus('loading','Guardando...');const{error}=await sbClient.from(table).delete().eq('id',id);setSyncStatus(error?'error':'ok',error?'Error':'Sincronizado');}
 function nextId(prefix,arr){return prefix+'-'+String(arr.length+1+Math.floor(Math.random()*900)).padStart(3,'0');}
 
 // ── UI ─────────────────────────────────────────────────────────────────────
@@ -711,13 +1000,14 @@ function showSection(name,btn){
   btn.classList.add('active');
   if(name==='cotizar')populateCotizarSelects();
   if(name==='costos')buildCFIngredients();
-  if(name==='historial')renderHistorial();
+  if(name==='historial'){renderHistorial();loadHistorial();}
+  if(name==='dashboard'){renderDashboard();loadHistorial();}
   if(name==='mantenimiento')renderTodasListas();
 }
 
 function openModal(type){
-  if(type==='inv'){document.getElementById('inv-edit-id').value='';document.getElementById('inv-modal-title').textContent='Agregar insumo';['inv-nombre','inv-obs'].forEach(id=>document.getElementById(id).value='');document.getElementById('inv-costo').value='';document.getElementById('inv-cantidad').value='';document.getElementById('inv-merma').value='0';document.getElementById('inv-costo-real-preview').textContent='₡0';populateInvSelects();}
-  if(type==='cf'){document.getElementById('cf-edit-id').value='';document.getElementById('cf-modal-title').textContent='Nueva receta';document.getElementById('cf-nombre').value='';document.getElementById('cf-ingredients-container').innerHTML='';cfPickerCounter=0;buildCFIngredients();document.getElementById('cf-total').textContent='₡0';}
+  if(type==='inv'){document.getElementById('inv-edit-id').value='';document.getElementById('inv-modal-title').textContent='Agregar insumo';['inv-nombre','inv-obs'].forEach(id=>document.getElementById(id).value='');document.getElementById('inv-costo').value='';document.getElementById('inv-cantidad').value='';document.getElementById('inv-merma').value='0';document.getElementById('inv-rendimiento').value='100';document.getElementById('inv-costo-real-preview').querySelector('span').textContent='₡0';populateInvSelects();}
+  if(type==='cf'){document.getElementById('cf-edit-id').value='';document.getElementById('cf-modal-title').textContent='Nueva receta';document.getElementById('cf-nombre').value='';document.getElementById('cf-rend-cantidad').value='';document.getElementById('cf-rend-unidad').value='unidades';document.getElementById('cf-costo-por-unidad').textContent='₡—';document.getElementById('cf-ingredients-container').innerHTML='';cfPickerCounter=0;buildCFIngredients();document.getElementById('cf-total').textContent='₡0';}
   if(type==='mn'){document.getElementById('mn-edit-id').value='';document.getElementById('mn-modal-title').textContent='Nuevo menú';document.getElementById('mn-nombre').value='';document.getElementById('mn-desc').value='';document.getElementById('mn-combos-container').innerHTML='';document.getElementById('mn-total-costo').textContent='₡0';addComboBlock();}
   document.getElementById('modal-'+type).classList.add('open');
 }
@@ -737,6 +1027,8 @@ function populateInvSelects(){
 }
 
 async function saveInventario(){
+  if(!permitirEscrituraF7())return;
+  try{numeroCosto(valorF7('inv-costo'),'Costo de compra');const m=numeroCosto(valorF7('inv-merma'),'Merma');if(m>=100)throw new Error('La merma debe ser menor a 100%.');}catch(e){return alert(e.message);}
   const editId=document.getElementById('inv-edit-id').value;
   const item={id:editId||nextId('INS',invData),nombre:document.getElementById('inv-nombre').value.trim(),categoria:document.getElementById('inv-cat').value,cantidad:parseFloat(document.getElementById('inv-cantidad').value)||null,unidad:document.getElementById('inv-unidad').value,costo:parseFloat(document.getElementById('inv-costo').value)||0,merma:parseFloat(document.getElementById('inv-merma').value)||0,proveedor:document.getElementById('inv-proveedor-sel').value,obs:document.getElementById('inv-obs').value.trim()};
   if(!item.nombre)return alert('Ingresá el nombre del insumo.');
@@ -827,11 +1119,27 @@ function clearInvSearch(){
   renderInvRows(invData,'','');
 }
 
+function syncMermaRendimiento(origen){
+  const mermaEl=document.getElementById('inv-merma');
+  const rendEl=document.getElementById('inv-rendimiento');
+  if(!mermaEl||!rendEl)return;
+  if(origen==='merma'){
+    const m=Math.min(99,Math.max(0,parseFloat(mermaEl.value)||0));
+    mermaEl.value=m;
+    rendEl.value=parseFloat((100-m).toFixed(4));
+  } else {
+    const r=Math.min(100,Math.max(1,parseFloat(rendEl.value)||100));
+    rendEl.value=r;
+    mermaEl.value=parseFloat((100-r).toFixed(4));
+  }
+  updateCostoRealPreview();
+}
 function updateCostoRealPreview(){
   const costo=parseFloat(document.getElementById('inv-costo').value)||0;
   const merma=parseFloat(document.getElementById('inv-merma').value)||0;
   const real=merma>0?costo/(1-merma/100):costo;
-  document.getElementById('inv-costo-real-preview').textContent=fmtMoney(real)+(merma>0?` (÷${(1-merma/100).toFixed(2)})`:'');
+  const el=document.getElementById('inv-costo-real-preview');
+  if(el)el.querySelector('span').textContent=fmtMoney(real)+(merma>0?` (÷${((100-merma)/100).toFixed(2)})`:'');
 }
 function editInv(id){
   const i=invData.find(x=>x.id===id);if(!i)return;
@@ -842,6 +1150,7 @@ function editInv(id){
   document.getElementById('inv-cantidad').value=i.cantidad!==null?i.cantidad:'';
   document.getElementById('inv-costo').value=i.costo;
   document.getElementById('inv-merma').value=i.merma||0;
+  document.getElementById('inv-rendimiento').value=parseFloat((100-(i.merma||0)).toFixed(4));
   updateCostoRealPreview();
   populateInvSelects();
   document.getElementById('inv-cat').value=i.categoria;
@@ -850,18 +1159,18 @@ function editInv(id){
   document.getElementById('inv-proveedor-sel').value=i.proveedor;
   document.getElementById('modal-inv').classList.add('open');
 }
-async function deleteInv(id){if(!confirm('¿Eliminar?'))return;invData=invData.filter(i=>i.id!==id);renderInventario();recalcCFs();await dbDelete('inventario',id);}
+async function deleteInv(id){if(!permitirEscrituraF7())return;if(!confirm('¿Eliminar?'))return;invData=invData.filter(i=>i.id!==id);renderInventario();recalcCFs();await dbDelete('inventario',id);}
 
 // ── COSTOS FIJOS ───────────────────────────────────────────────────────────
 function pName(pid){const i=invData.find(x=>x.id===pid);return i?`${i.nombre} (${i.unidad})`:'—';}
 
 let cfPickerCounter=0;
-function addCFIngredient(value='',qty=1){
+function addCFIngredient(value='',qty=1,unidad=''){
   const cont=document.getElementById('cf-ingredients-container');if(!cont)return;
   const pid='cfpicker-'+(++cfPickerCounter);
   const row=document.createElement('div');
   row.className='cf-ing-row';
-  row.style.cssText='display:grid;grid-template-columns:1fr 75px 90px auto;gap:6px;margin-bottom:6px;align-items:center;';
+  row.style.cssText='display:grid;grid-template-columns:minmax(140px,1fr) 70px 100px 85px auto;gap:6px;margin-bottom:6px;align-items:center;';
   row.innerHTML=`
     <div class="item-picker" id="${pid}">
       <input type="text" class="item-picker-input" placeholder="Buscar ingrediente..." readonly onclick="togglePicker('${pid}')" autocomplete="off"/>
@@ -873,6 +1182,7 @@ function addCFIngredient(value='',qty=1){
       </div>
     </div>
     <input type="number" class="cf-item-qty" value="${qty}" min="0.001" step="0.001" style="text-align:right;" onchange="updateCFTotal()"/>
+    <select class="cf-item-unidad" aria-label="Unidad del ingrediente" onchange="updateCFTotal()">${[['','Unidad original / lote'],['kg','kg'],['g','g'],['L','L'],['ml','ml'],['unidades','unidades'],['porciones','porciones']].map(([k,v])=>`<option value="${k}" ${k===unidad?'selected':''}>${v}</option>`).join('')}</select>
     <span class="item-subtotal" style="font-size:11px;color:var(--green);text-align:right;padding:8px 4px;white-space:nowrap;">₡0</span>
     <button class="btn xs danger" onclick="this.closest('.cf-ing-row').remove();updateCFTotal()"><i class="ti ti-x"></i></button>`;
   cont.appendChild(row);
@@ -925,7 +1235,7 @@ function buildCFIngredients(existing){
   const cont=document.getElementById('cf-ingredients-container');if(!cont)return;
   cont.innerHTML='';cfPickerCounter=0;
   if(existing&&existing.items&&existing.items.length){
-    existing.items.forEach(item=>addCFIngredient(typeof item==='object'?item.id:item, typeof item==='object'?(item.qty||1):1));
+    existing.items.forEach(item=>addCFIngredient(typeof item==='object'?item.id:item, typeof item==='object'?(item.qty??1):1,typeof item==='object'?item.unidad||'':''));
   } else if(existing&&(existing.p1||existing.p2||existing.p3||existing.p4)){
     // Legacy: p1-p4 format
     [existing.p1,existing.p2,existing.p3,existing.p4].filter(Boolean).forEach(pid=>addCFIngredient(pid,1));
@@ -935,101 +1245,18 @@ function buildCFIngredients(existing){
   updateCFTotal();
 }
 
-function updateCFTotal(){
-  let total=0;
-  const cont=document.getElementById('cf-ingredients-container');if(!cont)return;
-  cont.querySelectorAll('.cf-ing-row').forEach(row=>{
-    const pidEl=row.querySelector('.item-picker-value');
-    const qtyEl=row.querySelector('.cf-item-qty');
-    const subEl=row.querySelector('.item-subtotal');
-    if(!pidEl)return;
-    const id=pidEl.value;
-    const qty=parseFloat(qtyEl?qtyEl.value:1)||1;
-    const inv=invData.find(i=>i.id===id);
-    const cf=cfData.find(c=>c.id===id);
-    const unitCost=inv?inv.costo:(cf?cf.total:0);
-    const sub=unitCost*qty;
-    if(subEl)subEl.textContent=fmtMoney(sub);
-    total+=sub;
-  });
-  const totalEl=document.getElementById('cf-total');
-  if(totalEl)totalEl.textContent=fmtMoney(total);
-}
-
-async function saveCostoFijo(){
-  const editId=document.getElementById('cf-edit-id').value;
-  const cont=document.getElementById('cf-ingredients-container');
-  const items=[];
-  cont.querySelectorAll('.cf-ing-row').forEach(row=>{
-    const pidEl=row.querySelector('.item-picker-value');
-    const qtyEl=row.querySelector('.cf-item-qty');
-    const id=pidEl?pidEl.value:'';
-    const qty=parseFloat(qtyEl?qtyEl.value:1)||1;
-    if(id)items.push({id,qty});
-  });
-  const total=items.reduce((s,item)=>{
-    const inv=invData.find(x=>x.id===item.id);
-    const cfr=cfData.find(x=>x.id===item.id);
-    return s+((inv?inv.costo:(cfr?cfr.total:0))*item.qty);
-  },0);
-  // Keep p1-p4 for backwards compatibility
-  const cf={
-    id:editId||nextId('CF',cfData),
-    nombre:document.getElementById('cf-nombre').value.trim(),
-    items,
-    p1:items[0]?items[0].id:'', p2:items[1]?items[1].id:'',
-    p3:items[2]?items[2].id:'', p4:items[3]?items[3].id:'',
-    total
-  };
-  if(!cf.nombre)return alert('Ingresá el nombre de la receta.');
-  if(editId){const idx=cfData.findIndex(i=>i.id===editId);if(idx>=0)cfData[idx]=cf;}else cfData.push(cf);
-  closeModal('cf');renderCF();
-  await dbUpsert('costos_fijos',{id:cf.id,nombre:cf.nombre,items:cf.items,p1:cf.p1,p2:cf.p2,p3:cf.p3,p4:cf.p4,total:cf.total});
-}
-
-function recalcCFs(){
-  cfData=cfData.map(cf=>{
-    const items=cf.items&&cf.items.length?cf.items:[cf.p1,cf.p2,cf.p3,cf.p4].filter(Boolean).map(id=>({id,qty:1}));
-    const total=items.reduce((s,item)=>{
-      const inv=invData.find(x=>x.id===item.id);
-      const cfr=cfData.find(x=>x.id===item.id);
-      return s+((inv?inv.costo:(cfr?cfr.total:0))*(item.qty||1));
-    },0);
-    return{...cf,items,total};
-  });
-  renderCF();
-}
-
-function renderCF(){
-  const tbody=document.getElementById('cf-tbody');if(!tbody)return;
-  if(!cfData.length){tbody.innerHTML='<tr><td colspan="5"><div class="empty"><i class="ti ti-calculator"></i>Sin recetas aún.</div></td></tr>';return;}
-  tbody.innerHTML=cfData.map(cf=>{
-    const items=cf.items&&cf.items.length?cf.items:[cf.p1,cf.p2,cf.p3,cf.p4].filter(Boolean).map(id=>({id,qty:1}));
-    const itemsHtml=items.map(item=>{
-      const i=invData.find(x=>x.id===item.id);
-      return i?('<span class="menu-tag">'+(item.qty&&item.qty!==1?item.qty+'x ':'')+i.nombre+'</span>'):'';
-    }).join('');
-    return '<tr>'+
-      '<td style="color:var(--text2);font-size:12px;">'+cf.id+'</td>'+
-      '<td style="font-weight:500;">'+cf.nombre+'</td>'+
-      '<td colspan="2" style="font-size:12px;">'+(itemsHtml||'—')+'</td>'+
-      '<td style="font-weight:500;color:var(--green);">'+fmtMoney(cf.total)+'</td>'+
-      '<td><div style="display:flex;gap:4px;">'+
-        '<button class="btn sm" onclick="editCF(\''+cf.id+'\')"><i class="ti ti-edit"></i></button>'+
-        '<button class="btn sm danger" onclick="deleteCF(\''+cf.id+'\')"><i class="ti ti-trash"></i></button>'+
-      '</div></td></tr>';
-  }).join('');
-}
-
 function editCF(id){
   const cf=cfData.find(x=>x.id===id);if(!cf)return;
   document.getElementById('cf-edit-id').value=cf.id;
   document.getElementById('cf-modal-title').textContent='Editar receta';
   document.getElementById('cf-nombre').value=cf.nombre;
+  document.getElementById('cf-rend-cantidad').value=cf.rendimiento_cantidad||'';
+  document.getElementById('cf-rend-unidad').value=cf.rendimiento_unidad||'unidades';
   buildCFIngredients(cf);
+  updateCFCostoPorUnidad();
   document.getElementById('modal-cf').classList.add('open');
 }
-async function deleteCF(id){if(!confirm('¿Eliminar?'))return;cfData=cfData.filter(i=>i.id!==id);renderCF();await dbDelete('costos_fijos',id);}
+async function deleteCF(id){if(!permitirEscrituraF7())return;if(!confirm('¿Eliminar?'))return;cfData=cfData.filter(i=>i.id!==id);renderCF();await dbDelete('costos_fijos',id);}
 
 // ── MENÚ CON COMBOS ────────────────────────────────────────────────────────
 function itemsOpts(){return'<option value="">— Ninguno —</option>'+[...invData.map(i=>({id:i.id,label:`${i.nombre} (${i.unidad}) — ${fmtMoney(i.costo)}`})),...cfData.map(c=>({id:c.id,label:`${c.nombre} [receta] — ${fmtMoney(c.total)}`}))].map(i=>`<option value="${i.id}">${i.label}</option>`).join('');}
@@ -1048,13 +1275,13 @@ function addComboBlock(combo=null){
       </div>
       <button class="btn xs danger" style="margin-left:8px;" onclick="document.getElementById('${cid}').remove();recalcMenuTotal()"><i class="ti ti-trash"></i></button>
     </div>
-    <div class="combo-col-header"><span>Ítem</span><span>Cantidad</span><span>Subtotal</span><span></span></div>
+    <div class="combo-col-header"><span>Ítem</span><span>Cant./persona</span><span>Unidad</span><span>Subtotal</span><span></span></div>
     <div class="combo-items"></div>
     <button class="add-item-btn" onclick="addComboItem('${cid}')"><i class="ti ti-plus" style="font-size:12px;"></i> Agregar ítem</button>
-    <div style="font-size:12px;color:var(--green);margin-top:6px;text-align:right;font-weight:500;" class="combo-subtotal">Subtotal: ₡0</div>`;
+    <div style="font-size:12px;color:var(--green);margin-top:6px;text-align:right;font-weight:500;" class="combo-subtotal">Costo/persona: ₡0</div>`;
   cont.appendChild(div);
-  const items=combo&&combo.items?combo.items:[{id:'',qty:1}];
-  items.forEach(item=>addComboItem(cid,typeof item==='object'?item.id:item,typeof item==='object'?item.qty:1));
+  const items=combo&&combo.items?combo.items:[{id:'',qty:1,unidad:''}];
+  items.forEach(item=>addComboItem(cid,typeof item==='object'?item.id:item,typeof item==='object'?item.qty:1,typeof item==='object'?item.unidad||'':''));
   recalcMenuTotal();
 }
 
@@ -1066,10 +1293,11 @@ function allItemsList(){
 }
 
 let pickerCounter=0;
-function addComboItem(cid,value='',qty=1){
+function addComboItem(cid,value='',qty=1,unidad=''){
   const itemsCont=document.getElementById(cid).querySelector('.combo-items');
   const row=document.createElement('div');row.className='combo-item-row';
   const pid='picker-'+(++pickerCounter);
+  const unidadOpts='<option value="">Unidad original / lote completo</option>'+['kg','g','ml','L','unidades','porciones'].map(u=>`<option value="${u}"${u===unidad?' selected':''}>${u}</option>`).join('');
   row.innerHTML=`
     <div class="item-picker" id="${pid}">
       <input type="text" class="item-picker-input" placeholder="Buscar ítem..." readonly onclick="togglePicker('${pid}')" autocomplete="off"/>
@@ -1080,7 +1308,8 @@ function addComboItem(cid,value='',qty=1){
         <div class="item-picker-clear" onclick="clearPicker('${pid}')">✕ Limpiar selección</div>
       </div>
     </div>
-    <input type="number" class="item-qty" value="${qty}" min="0.01" step="0.01" style="text-align:right;" onchange="recalcMenuTotal()"/>
+    <input type="number" class="item-qty" value="${qty}" min="0.001" step="0.001" style="text-align:right;" onchange="recalcMenuTotal()"/>
+    <select class="item-unidad" style="font-size:12px;" onchange="recalcMenuTotal()">${unidadOpts}</select>
     <span class="item-subtotal">₡0</span>
     <button class="btn xs danger" onclick="this.closest('.combo-item-row').remove();recalcMenuTotal()"><i class="ti ti-x"></i></button>`;
   itemsCont.appendChild(row);
@@ -1146,29 +1375,6 @@ document.addEventListener('click',function(e){
   }
 });
 
-function recalcMenuTotal(){
-  let total=0;
-  document.querySelectorAll('.combo-block').forEach(block=>{
-    let sub=0;
-    block.querySelectorAll('.combo-items .combo-item-row').forEach(row=>{
-      const hiddenVal=row.querySelector('.item-picker-value');
-      const qtyEl=row.querySelector('.item-qty');
-      const subtotalEl=row.querySelector('.item-subtotal');
-      const itemId=hiddenVal?hiddenVal.value:'';
-      const qty=parseFloat(qtyEl?qtyEl.value:1)||1;
-      const inv=invData.find(i=>i.id===itemId);
-      const cf=cfData.find(c=>c.id===itemId);
-      const unitCost=(inv?inv.costo:0)+(cf?cf.total:0);
-      const rowTotal=unitCost*qty;
-      if(subtotalEl)subtotalEl.textContent=fmtMoney(rowTotal);
-      sub+=rowTotal;
-    });
-    total+=sub;
-    block.querySelector('.combo-subtotal').textContent='Subtotal: '+fmtMoney(sub);
-  });
-  document.getElementById('mn-total-costo').textContent=fmtMoney(total);
-}
-
 function getCombosFromModal(){
   const combos=[];
   document.querySelectorAll('.combo-block').forEach(block=>{
@@ -1177,8 +1383,9 @@ function getCombosFromModal(){
     const items=Array.from(block.querySelectorAll('.combo-items .combo-item-row')).map(row=>{
       const hiddenVal=row.querySelector('.item-picker-value');
       const id=hiddenVal?hiddenVal.value:'';
-      const qty=parseFloat(row.querySelector('.item-qty').value)||1;
-      return id?{id,qty}:null;
+      const qty=numeroCosto(row.querySelector('.item-qty').value,'Cantidad del menú');
+      const unidad=row.querySelector('.item-unidad')?row.querySelector('.item-unidad').value:'';
+      return id?{id,qty,unidad}:null;
     }).filter(Boolean);
     if(nombre||items.length)combos.push({nombre,tipo,items});
   });
@@ -1186,22 +1393,13 @@ function getCombosFromModal(){
 }
 
 // Devuelve el costo POR PERSONA del menú, con margen de inflación aplicado
-function calcMenuCostoPorPersona(mn){
-  return(mn.combos||[]).reduce((total,combo)=>{
-    return total+(combo.items||[]).reduce((s,item)=>{
-      const id=typeof item==='object'?item.id:item;
-      const qty=typeof item==='object'?(item.qty||1):1;
-      const inv=invData.find(i=>i.id===id);const cf=cfData.find(c=>c.id===id);
-      const costoBase=(inv?costoReal(inv):0)+(cf?cf.total:0);
-      return s+costoConMargen(costoBase)*qty;
-    },0);
-  },0);
-}
-
-async function saveMenu(){
+// ── LISTA DE COMPRA ─────────────────────────────────────────────────────────
+async function saveMenu(){if(!permitirEscrituraF7())return;
+  try{getCombosFromModal();}catch(e){return alert(e.message);}
   const editId=document.getElementById('mn-edit-id').value;
   const mn={id:editId||nextId('MN',menuData),nombre:document.getElementById('mn-nombre').value.trim(),descripcion:document.getElementById('mn-desc').value.trim(),combos:getCombosFromModal()};
   if(!mn.nombre)return alert('Ingresá el nombre del menú.');
+  try{calcularCostoIngredientes(mn);}catch(e){return alert(e.message);}
   if(editId){const idx=menuData.findIndex(i=>i.id===editId);if(idx>=0)menuData[idx]=mn;}else menuData.push(mn);
   closeModal('mn');renderMenus();await dbUpsert('menus',{id:mn.id,nombre:mn.nombre,descripcion:mn.descripcion,combos:mn.combos});
 }
@@ -1212,7 +1410,7 @@ function renderMenus(){
   const cont=document.getElementById('menu-cards');if(!cont)return;
   if(!menuData.length){cont.innerHTML='<div class="empty"><i class="ti ti-tools-kitchen-2"></i>Sin menús aún. Creá el primero.</div>';return;}
   cont.innerHTML=menuData.map(mn=>{
-    const costoTotal=calcMenuCostoPorPersona(mn);
+    let costoTotal=0;try{costoTotal=calcMenuCostoPorPersona(mn);}catch(e){costoTotal=null;}
     const combosHtml=(mn.combos||[]).map(combo=>`
       <div style="margin-bottom:8px;">
         <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:3px;">${combo.nombre||'Sin nombre'} <span class="combo-pill">${combo.tipo||'General'}</span></div>
@@ -1223,7 +1421,7 @@ function renderMenus(){
         <div>
           <div style="font-weight:500;font-size:15px;">${mn.nombre} <span style="color:var(--text2);font-size:12px;">${mn.id}</span></div>
           ${mn.descripcion?`<div style="font-size:12px;color:var(--text2);margin-top:2px;">${mn.descripcion}</div>`:''}
-          <div style="font-size:12px;color:#854F0B;margin-top:4px;">💰 Costo/persona (+${margenInflacion}% inflación): ${fmtMoney(costoTotal)}</div>
+          <div style="font-size:12px;color:#854F0B;margin-top:4px;">💰 Costo/persona (+${margenInflacion}% inflación): ${(costoTotal===null?'Revisar unidades/rendimiento':fmtMoney(costoTotal))}</div>
         </div>
         <div style="display:flex;gap:4px;">
           <button class="btn sm" onclick="editMenu('${mn.id}')"><i class="ti ti-edit"></i></button>
@@ -1247,271 +1445,10 @@ function editMenu(id){
   if(!mn.combos||!mn.combos.length)addComboBlock();
   document.getElementById('modal-mn').classList.add('open');
 }
-async function deleteMenu(id){if(!confirm('¿Eliminar?'))return;menuData=menuData.filter(i=>i.id!==id);renderMenus();await dbDelete('menus',id);}
+async function deleteMenu(id){if(!permitirEscrituraF7())return;if(!confirm('¿Eliminar?'))return;menuData=menuData.filter(i=>i.id!==id);renderMenus();await dbDelete('menus',id);}
 
 // ── COTIZAR ────────────────────────────────────────────────────────────────
-function populateCotizarSelects(){
-  const sel=document.getElementById('c-menu');
-  sel.innerHTML='<option value="">— Seleccionar —</option>'+menuData.map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
-  initCotizarPersonalEquipo();
-}
-
-function recalc(){
-  const personas=parseInt(document.getElementById('c-personas').value)||0;
-  const parrilleros=getParrillerosList();
-  const costoPersonal=parrilleros.reduce((s,p)=>s+p.costo,0);
-  const costoEquipo=parseFloat(document.getElementById('c-costoequipo').value)||0;
-  const otros=parseFloat(document.getElementById('c-otros').value)||0;
-  const margen=parseFloat(document.getElementById('c-margen').value)||0;
-  const menuId=document.getElementById('c-menu').value;
-  const menuSel=menuData.find(m=>m.id===menuId);
-  const costoPorPersona=menuSel?calcMenuCostoPorPersona(menuSel):0;
-  const costoInsumos=costoPorPersona*personas;
-  const costoBase=costoInsumos+costoPersonal+costoEquipo+otros;
-  const ganancia=costoBase*(margen/100);
-  const precioFinal=costoBase+ganancia;
-  const ppp=personas>0?precioFinal/personas:0;
-
-  const resumen=document.getElementById('cot-resumen');
-  const actions=document.getElementById('cot-actions');
-  const parStr=parrilleros.length>0?parrilleros.map(p=>`${p.nombre||'Sin nombre'}: ${fmtMoney(p.costo)}`).join(', '):'Sin parrilleros';
-  resumen.innerHTML=`<div class="result-box">
-    ${menuSel?`<div class="result-row"><span>Menú seleccionado</span><span style="font-weight:500;">${menuSel.nombre}</span></div>`:''}
-    <div class="result-row"><span>Insumos (${fmtMoney(costoPorPersona)}/persona × ${personas}, +${margenInflacion}%)</span><span>${fmtMoney(costoInsumos)}</span></div>
-    <div class="result-row"><span>Personal (${parrilleros.length} parrillero${parrilleros.length!==1?'s':''})</span><span>${fmtMoney(costoPersonal)}</span></div>
-    <div class="result-row"><span>Equipo</span><span>${fmtMoney(costoEquipo)}</span></div>
-    <div class="result-row"><span>Otros costos</span><span>${fmtMoney(otros)}</span></div>
-    <div class="result-row total"><span>Costo base total</span><span>${fmtMoney(costoBase)}</span></div>
-    <div class="result-row ganancia"><span>Ganancia (${margen}%)</span><span>+${fmtMoney(ganancia)}</span></div>
-    <div class="result-row total"><span>Precio final</span><span>${fmtMoney(precioFinal)}</span></div>
-    <div style="margin-top:12px;padding-top:10px;border-top:0.5px solid #F0997B;">
-      <div class="result-row ppersona"><span>💰 Precio por persona (${personas})</span><span>${fmtMoney(ppp)}</span></div>
-    </div>
-  </div>`;
-  if(actions)actions.style.display='flex';
-}
-
-async function guardarCotizacion(){
-  const cliente=document.getElementById('c-cliente').value.trim();
-  if(!cliente)return alert('Ingresá el nombre del cliente antes de guardar.');
-  const personas=parseInt(document.getElementById('c-personas').value)||0;
-  if(personas<=0)return alert('Ingresá una cantidad de personas válida.');
-  const parrilleros=getParrillerosList();
-  const equiposSel=getEquiposList();
-  const costoPersonal=parrilleros.reduce((s,p)=>s+p.costo,0);
-  const costoEquipo=parseFloat(document.getElementById('c-costoequipo').value)||0;
-  const otros=parseFloat(document.getElementById('c-otros').value)||0;
-  const margen=parseFloat(document.getElementById('c-margen').value)||0;
-  const menuId=document.getElementById('c-menu').value;
-  const menuSel=menuData.find(m=>m.id===menuId);
-  const costoPorPersona=menuSel?calcMenuCostoPorPersona(menuSel):0;
-  const costoInsumos=costoPorPersona*personas;
-  const costoBase=costoInsumos+costoPersonal+costoEquipo+otros;
-  const ganancia=costoBase*(margen/100);
-  const precioFinal=costoBase+ganancia;
-  const ppp=personas>0?precioFinal/personas:0;
-  const row={
-    cliente,
-    fecha:document.getElementById('c-fecha').value||new Date().toISOString().split('T')[0],
-    menu_id:menuId,
-    menu_nombre:menuSel?menuSel.nombre:'',
-    personas,
-    parrilleros:parrilleros.length,
-    costo_parrillero:costoPersonal,
-    parrilleros_detalle:parrilleros,
-    equipos_seleccionados:equiposSel,
-    costo_insumos:costoInsumos,
-    costo_por_persona_menu:costoPorPersona,
-    margen_inflacion:margenInflacion,
-    costo_equipo:costoEquipo,
-    otros_costos:otros,
-    margen,
-    costo_total:costoBase,
-    ganancia,
-    precio_final:precioFinal,
-    precio_por_persona:ppp,
-    notas:document.getElementById('c-notas').value
-  };
-  setSyncStatus('loading','Guardando...');
-  const{data,error}=await sbClient.from('cotizaciones').insert(row).select();
-  if(error){setSyncStatus('error','Error');alert('Error al guardar: '+error.message);return;}
-  cotizaciones.unshift(data[0]);
-  setSyncStatus('ok','Sincronizado');
-  alert('✅ Cotización guardada correctamente.');
-}
-
-function exportCotizacion(){
-  const cliente=document.getElementById('c-cliente').value||'Cliente';
-  const fecha=document.getElementById('c-fecha').value||new Date().toLocaleDateString('es-CR');
-  const personas=document.getElementById('c-personas').value;
-  const parrilleros=getParrillerosList();
-  const equiposSel=getEquiposList();
-  const costoEquipo=document.getElementById('c-costoequipo').value;
-  const otros=document.getElementById('c-otros').value,margen=document.getElementById('c-margen').value;
-  const menuId=document.getElementById('c-menu').value;const menuSel=menuData.find(m=>m.id===menuId);
-  const costoInsumos=menuSel?calcMenuCostoPorPersona(menuSel)*parseInt(personas):0;
-  const cP=parrilleros.reduce((s,p)=>s+p.costo,0);
-  const cBase=costoInsumos+cP+parseFloat(costoEquipo)+parseFloat(otros),g=cBase*(parseFloat(margen)/100),pF=cBase+g,ppp=parseInt(personas)>0?pF/parseInt(personas):0;
-  const parStr=parrilleros.map(p=>`${p.nombre}: ${fmtMoney(p.costo)}`).join(' | ');
-  const eqStr=equiposSel.map(e=>`${e.equipo}: ${fmtMoney(e.costo)}`).join(' | ');
-  const rows=[['Cliente',cliente],['Fecha',fecha],['Menú',menuSel?menuSel.nombre:'—'],['Personas',personas],['Parrilleros',parStr],['Equipos',eqStr],['Costo equipo',fmtMoney(parseFloat(costoEquipo))],['Costo insumos menú',fmtMoney(costoInsumos)],['Otros costos',fmtMoney(parseFloat(otros))],['Costo base',fmtMoney(cBase)],['Margen',margen+'%'],['Ganancia',fmtMoney(g)],['Precio final',fmtMoney(pF)],['Precio por persona',fmtMoney(ppp)]];
-  const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='cotizacion_'+cliente.replace(/\s+/g,'_')+'.csv';a.click();URL.revokeObjectURL(url);
-}
-
 // ── HISTORIAL ──────────────────────────────────────────────────────────────
-async function loadHistorial(){
-  setSyncStatus('loading','Cargando...');
-  const{data,error}=await sbClient.from('cotizaciones').select('*').order('created_at',{ascending:false}).limit(100);
-  if(!error){cotizaciones=data||[];}
-  setSyncStatus('ok','Sincronizado');
-  renderHistorial();
-}
-
-function renderHistorial(){
-  const cont=document.getElementById('hist-content');if(!cont)return;
-  if(!cotizaciones.length){cont.innerHTML='<div class="empty"><i class="ti ti-history"></i>Sin cotizaciones guardadas aún.</div>';return;}
-  // Sort by date descending
-  const sorted=[...cotizaciones].sort((a,b)=>new Date(b.created_at||b.fecha)-new Date(a.created_at||a.fecha));
-  cont.innerHTML=`
-    <div class="metric-grid" style="margin-bottom:16px;">
-      <div class="metric"><div class="metric-label">Total cotizaciones</div><div class="metric-value">${cotizaciones.length}</div></div>
-      <div class="metric"><div class="metric-label">Total facturado</div><div class="metric-value cost-total">${fmtMoney(cotizaciones.reduce((s,c)=>s+(c.precio_final||0),0))}</div></div>
-      <div class="metric"><div class="metric-label">Ganancia total</div><div class="metric-value" style="color:var(--brand);">${fmtMoney(cotizaciones.reduce((s,c)=>s+(c.ganancia||0),0))}</div></div>
-      <div class="metric"><div class="metric-label">Precio promedio/persona</div><div class="metric-value" style="color:var(--brand-dark);">${fmtMoney(cotizaciones.reduce((s,c)=>s+(c.precio_por_persona||0),0)/Math.max(cotizaciones.length,1))}</div></div>
-    </div>
-    ${sorted.map(c=>`
-    <div class="hist-card">
-      <div>
-        <div class="hist-cliente">${c.cliente}</div>
-        <div class="hist-meta">
-          ${c.fecha||''} 
-          ${c.menu_nombre?'<span style="background:var(--brand-light);color:var(--brand-dark);padding:1px 7px;border-radius:10px;font-size:11px;margin-left:4px;">'+c.menu_nombre+'</span>':''}
-        </div>
-        <div style="display:flex;gap:16px;margin-top:6px;flex-wrap:wrap;">
-          <span style="font-size:12px;color:var(--text2);"><i class="ti ti-users" style="font-size:13px;vertical-align:-2px;"></i> ${c.personas||0} personas</span>
-          <span style="font-size:12px;color:var(--text2);"><i class="ti ti-flame" style="font-size:13px;vertical-align:-2px;"></i> ${c.parrilleros||0} parrillero${c.parrilleros!==1?'s':''}</span>
-          <span style="font-size:12px;color:var(--green);"><i class="ti ti-trending-up" style="font-size:13px;vertical-align:-2px;"></i> Margen ${c.margen||0}%</span>
-        </div>
-        ${c.notas?`<div style="font-size:12px;color:var(--text2);margin-top:4px;font-style:italic;">${c.notas}</div>`:''}
-      </div>
-      <div style="text-align:right;">
-        <div class="hist-precio">${fmtMoney(c.precio_final)}</div>
-        <div class="hist-ppersona">${fmtMoney(c.precio_por_persona)} / persona</div>
-        <div style="font-size:11px;color:var(--green);margin-top:2px;">Ganancia: ${fmtMoney(c.ganancia)}</div>
-        <div class="hist-actions">
-          <button class="btn xs" onclick="openEditCotizacion('${c.id}')"><i class="ti ti-edit"></i> Editar</button>
-          <button class="btn xs danger" onclick="deleteCotizacion('${c.id}')"><i class="ti ti-trash"></i></button>
-        </div>
-      </div>
-    </div>`).join('')}`;
-}
-
-async function deleteCotizacion(id){
-  if(!confirm('¿Eliminar esta cotización?'))return;
-  await dbDelete('cotizaciones',id);
-  cotizaciones=cotizaciones.filter(c=>c.id!==id);
-  renderHistorial();
-}
-
-function openEditCotizacion(id){
-  const c=cotizaciones.find(x=>x.id===id);if(!c)return;
-  document.getElementById('cot-edit-id').value=c.id;
-  document.getElementById('cot-edit-cliente').value=c.cliente||'';
-  document.getElementById('cot-edit-fecha').value=c.fecha||'';
-  document.getElementById('cot-edit-personas').value=c.personas||0;
-  // Compatibilidad: si tiene parrilleros_detalle usa su suma, si no usa costo_parrillero legacy
-  const costoPersonal=c.parrilleros_detalle&&c.parrilleros_detalle.length>0
-    ?c.parrilleros_detalle.reduce((s,p)=>s+(p.costo||0),0)
-    :(c.costo_parrillero||0);
-  document.getElementById('cot-edit-personal').value=costoPersonal;
-  document.getElementById('cot-edit-equipo').value=c.costo_equipo||0;
-  document.getElementById('cot-edit-otros').value=c.otros_costos||0;
-  document.getElementById('cot-edit-margen').value=c.margen||0;
-  document.getElementById('cot-edit-notas').value=c.notas||'';
-  const sel=document.getElementById('cot-edit-menu');
-  sel.innerHTML='<option value="">— Sin menú —</option>'+menuData.map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
-  sel.value=c.menu_id||'';
-  recalcEdit();
-  document.getElementById('modal-cot-edit').classList.add('open');
-}
-
-function recalcEdit(){
-  const personas=parseInt(document.getElementById('cot-edit-personas').value)||0;
-  const costoPersonal=parseFloat(document.getElementById('cot-edit-personal').value)||0;
-  const costoEquipo=parseFloat(document.getElementById('cot-edit-equipo').value)||0;
-  const otros=parseFloat(document.getElementById('cot-edit-otros').value)||0;
-  const margen=parseFloat(document.getElementById('cot-edit-margen').value)||0;
-  const menuId=document.getElementById('cot-edit-menu').value;
-  const menuSel=menuData.find(m=>m.id===menuId);
-  const costoPorPersona=menuSel?calcMenuCostoPorPersona(menuSel):0;
-  const costoInsumos=costoPorPersona*personas;
-  const costoBase=costoInsumos+costoPersonal+costoEquipo+otros;
-  const ganancia=costoBase*(margen/100);
-  const precioFinal=costoBase+ganancia;
-  const ppp=personas>0?precioFinal/personas:0;
-  document.getElementById('cot-edit-resumen').innerHTML=`
-    <div class="result-box">
-      ${menuSel?`<div class="result-row"><span>Insumos (${fmtMoney(costoPorPersona)}/pers. × ${personas}, +${margenInflacion}%)</span><span>${fmtMoney(costoInsumos)}</span></div>`:''}
-      <div class="result-row"><span>Personal</span><span>${fmtMoney(costoPersonal)}</span></div>
-      <div class="result-row"><span>Equipo + otros</span><span>${fmtMoney(costoEquipo+otros)}</span></div>
-      <div class="result-row total"><span>Costo base</span><span>${fmtMoney(costoBase)}</span></div>
-      <div class="result-row ganancia"><span>Ganancia (${margen}%)</span><span>+${fmtMoney(ganancia)}</span></div>
-      <div class="result-row total"><span>Precio final</span><span>${fmtMoney(precioFinal)}</span></div>
-      <div style="margin-top:8px;padding-top:8px;border-top:0.5px solid #F0997B;">
-        <div class="result-row ppersona"><span>💰 Por persona (${personas})</span><span>${fmtMoney(ppp)}</span></div>
-      </div>
-    </div>`;
-}
-
-async function saveCotizacionEdit(){
-  const id=document.getElementById('cot-edit-id').value;if(!id)return;
-  const personas=parseInt(document.getElementById('cot-edit-personas').value)||0;
-  if(personas<=0)return alert('Ingresá una cantidad de personas válida.');
-  const costoPersonal=parseFloat(document.getElementById('cot-edit-personal').value)||0;
-  const costoEquipo=parseFloat(document.getElementById('cot-edit-equipo').value)||0;
-  const otros=parseFloat(document.getElementById('cot-edit-otros').value)||0;
-  const margen=parseFloat(document.getElementById('cot-edit-margen').value)||0;
-  const menuId=document.getElementById('cot-edit-menu').value;
-  const menuSel=menuData.find(m=>m.id===menuId);
-  const costoPorPersona=menuSel?calcMenuCostoPorPersona(menuSel):0;
-  const costoInsumos=costoPorPersona*personas;
-  const costoBase=costoInsumos+costoPersonal+costoEquipo+otros;
-  const ganancia=costoBase*(margen/100);
-  const precioFinal=costoBase+ganancia;
-  const ppp=personas>0?precioFinal/personas:0;
-  const row={
-    id,
-    cliente:document.getElementById('cot-edit-cliente').value.trim(),
-    fecha:document.getElementById('cot-edit-fecha').value,
-    menu_id:menuId,
-    menu_nombre:menuSel?menuSel.nombre:'',
-    personas,
-    parrilleros:0,
-    costo_parrillero:costoPersonal,
-    costo_insumos:costoInsumos,
-    costo_por_persona_menu:costoPorPersona,
-    margen_inflacion:margenInflacion,
-    costo_equipo:costoEquipo,
-    otros_costos:otros,
-    margen,
-    costo_total:costoBase,
-    ganancia,
-    precio_final:precioFinal,
-    precio_por_persona:ppp,
-    notas:document.getElementById('cot-edit-notas').value
-  };
-  setSyncStatus('loading','Guardando...');
-  const{error}=await sbClient.from('cotizaciones').upsert(row,{onConflict:'id'});
-  if(error){setSyncStatus('error','Error');alert('Error: '+error.message);return;}
-  setSyncStatus('ok','Sincronizado');
-  const idx=cotizaciones.findIndex(c=>c.id===id);
-  if(idx>=0)cotizaciones[idx]={...cotizaciones[idx],...row};
-  closeModal('cot-edit');
-  renderHistorial();
-  alert('✅ Cotización actualizada.');
-}
-
 // ── MANTENIMIENTO ──────────────────────────────────────────────────────────
 // ── USUARIOS ───────────────────────────────────────────────────────────────
 async function loadUsuarios(){
@@ -1547,7 +1484,7 @@ function openModalUsuario(id='',email='',rol='full'){
   document.getElementById('usuario-error').style.display='none';
   openModal('usuario');
 }
-async function saveUsuario(){
+async function saveUsuario(){if(!permitirEscrituraF7())return;
   const id=document.getElementById('usuario-edit-id').value;
   const email=document.getElementById('usuario-email').value.trim();
   const pass=document.getElementById('usuario-pass').value;
@@ -1588,12 +1525,179 @@ async function saveUsuario(){
   }
   btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar';
 }
-async function deleteUsuario(id,email){
+async function deleteUsuario(id,email){if(!permitirEscrituraF7())return;
   if(!confirm(`¿Eliminar usuario ${email}? Esta acción no se puede deshacer.`))return;
   // Solo eliminar de app_usuarios — el usuario de Auth queda inactivo sin acceso a datos
   const{error}=await sbClient.from('app_usuarios').delete().eq('id',id);
   if(error){alert('Error al eliminar: '+error.message);return;}
   loadUsuarios();
+}
+
+// ── ROLES DE PERSONAL ──────────────────────────────────────────────────────
+function renderRoles(){
+  const tbody=document.getElementById('roles-tbody');if(!tbody)return;
+  if(!rolesPersonal.length){tbody.innerHTML=`<tr><td colspan="3"><div class="empty">Sin roles configurados.</div></td></tr>`;return;}
+  tbody.innerHTML=rolesPersonal.map(r=>`<tr>
+    <td style="font-weight:500;">${r.nombre}</td>
+    <td style="text-align:right;">${fmtMoney(r.tarifa_hora||0)}/hr</td>
+    <td style="text-align:right;">
+      <button class="btn sm" onclick="openModalRol('${r.id}')"><i class="ti ti-edit"></i></button>
+      <button class="btn sm danger" onclick="deleteRol('${r.id}')"><i class="ti ti-trash"></i></button>
+    </td></tr>`).join('');
+}
+function openModalRol(id=''){
+  const r=rolesPersonal.find(x=>x.id===id)||{};
+  document.getElementById('rol-edit-id').value=id;
+  document.getElementById('rol-nombre').value=r.nombre||'';
+  document.getElementById('rol-tarifa').value=r.tarifa_hora||'';
+  document.getElementById('rol-modal-title').textContent=id?'Editar rol':'Nuevo rol';
+  openModal('rol');
+}
+async function saveRol(){if(!permitirEscrituraF7())return;
+  const id=document.getElementById('rol-edit-id').value;
+  const nombre=document.getElementById('rol-nombre').value.trim();
+  const tarifa=parseFloat(document.getElementById('rol-tarifa').value)||0;
+  if(!nombre)return alert('Ingresá el nombre del rol.');
+  const row={nombre,tarifa_hora:tarifa,activo:true};
+  if(id)row.id=id;
+  const{data,error}=await sbClient.from('roles_personal').upsert(row,{onConflict:'id'}).select();
+  if(error)return alert('Error: '+error.message);
+  if(id){const idx=rolesPersonal.findIndex(x=>x.id===id);if(idx>=0)rolesPersonal[idx]=data[0];}
+  else rolesPersonal.push(data[0]);
+  closeModal('rol');renderRoles();
+}
+async function deleteRol(id){if(!permitirEscrituraF7())return;
+  if(!confirm('¿Eliminar este rol?'))return;
+  await sbClient.from('roles_personal').delete().eq('id',id);
+  rolesPersonal=rolesPersonal.filter(x=>x.id!==id);renderRoles();
+}
+
+// ── COSTOS OPERATIVOS ──────────────────────────────────────────────────────
+function renderOperativos(){
+  const tbody=document.getElementById('operativos-tbody');if(!tbody)return;
+  if(!costosOperativos.length){tbody.innerHTML=`<tr><td colspan="5"><div class="empty">Sin costos operativos.</div></td></tr>`;return;}
+  tbody.innerHTML=costosOperativos.map(o=>`<tr>
+    <td style="font-weight:500;">${o.nombre}</td>
+    <td style="color:var(--text2);">${o.categoria||'—'}</td>
+    <td style="color:var(--text2);">${o.unidad||'—'}</td>
+    <td style="text-align:right;">${fmtMoney(o.costo_unitario||0)}</td>
+    <td style="text-align:right;">
+      <button class="btn sm" onclick="openModalOperativo('${o.id}')"><i class="ti ti-edit"></i></button>
+      <button class="btn sm danger" onclick="deleteOperativo('${o.id}')"><i class="ti ti-trash"></i></button>
+    </td></tr>`).join('');
+}
+function openModalOperativo(id=''){
+  const o=costosOperativos.find(x=>x.id===id)||{};
+  document.getElementById('op-edit-id').value=id;
+  document.getElementById('op-nombre').value=o.nombre||'';
+  document.getElementById('op-unidad').value=o.unidad||'';
+  document.getElementById('op-costo').value=o.costo_unitario||'';
+  document.getElementById('op-proveedor').value=o.proveedor||'';
+  document.getElementById('op-obs').value=o.obs||'';
+  document.getElementById('op-modal-title').textContent=id?'Editar operativo':'Nuevo costo operativo';
+  openModal('operativo');
+}
+async function saveOperativo(){if(!permitirEscrituraF7())return;
+  const id=document.getElementById('op-edit-id').value;
+  const nombre=document.getElementById('op-nombre').value.trim();
+  if(!nombre)return alert('Ingresá un nombre.');
+  const row={nombre,unidad:document.getElementById('op-unidad').value.trim(),costo_unitario:parseFloat(document.getElementById('op-costo').value)||0,proveedor:document.getElementById('op-proveedor').value.trim(),obs:document.getElementById('op-obs').value.trim(),activo:true};
+  if(id)row.id=id;
+  const{data,error}=await sbClient.from('costos_operativos').upsert(row,{onConflict:'id'}).select();
+  if(error)return alert('Error: '+error.message);
+  if(id){const idx=costosOperativos.findIndex(x=>x.id===id);if(idx>=0)costosOperativos[idx]=data[0];}
+  else costosOperativos.push(data[0]);
+  closeModal('operativo');renderOperativos();
+}
+async function deleteOperativo(id){if(!permitirEscrituraF7())return;
+  if(!confirm('¿Eliminar?'))return;
+  await sbClient.from('costos_operativos').delete().eq('id',id);
+  costosOperativos=costosOperativos.filter(x=>x.id!==id);renderOperativos();
+}
+
+// ── COSTOS INDIRECTOS ──────────────────────────────────────────────────────
+const METODO_LABELS={fijo:'Monto fijo/evento',por_persona:'Por persona',pct_ingredientes:'% ingredientes',pct_directo:'% costo directo',manual:'Manual'};
+function renderIndirectos(){
+  const tbody=document.getElementById('indirectos-tbody');if(!tbody)return;
+  if(!costosIndirectos.length){tbody.innerHTML=`<tr><td colspan="4"><div class="empty">Sin costos indirectos.</div></td></tr>`;return;}
+  tbody.innerHTML=costosIndirectos.map(i=>`<tr>
+    <td style="font-weight:500;">${i.nombre}</td>
+    <td style="color:var(--text2);font-size:12px;">${METODO_LABELS[i.metodo]||i.metodo}</td>
+    <td style="text-align:right;">${i.metodo==='manual'?'—':fmtMoney(i.valor||0)+(i.metodo.startsWith('pct')?'%':'')}</td>
+    <td style="text-align:right;">
+      <button class="btn sm" onclick="openModalIndirecto('${i.id}')"><i class="ti ti-edit"></i></button>
+      <button class="btn sm danger" onclick="deleteIndirecto('${i.id}')"><i class="ti ti-trash"></i></button>
+    </td></tr>`).join('');
+}
+function openModalIndirecto(id=''){
+  const i=costosIndirectos.find(x=>x.id===id)||{};
+  document.getElementById('ind-edit-id').value=id;
+  document.getElementById('ind-nombre').value=i.nombre||'';
+  document.getElementById('ind-metodo').value=i.metodo||'fijo';
+  document.getElementById('ind-valor').value=i.valor||'';
+  document.getElementById('ind-modal-title').textContent=id?'Editar indirecto':'Nuevo costo indirecto';
+  updateIndValorLabel();
+  openModal('indirecto');
+}
+function updateIndValorLabel(){
+  const m=document.getElementById('ind-metodo').value;
+  const labels={fijo:'Monto fijo (₡)',por_persona:'Monto por persona (₡)',pct_ingredientes:'Porcentaje (%)',pct_directo:'Porcentaje (%)',manual:'(se ingresa manualmente en cotización)'};
+  document.getElementById('ind-valor-label').textContent=labels[m]||'Valor';
+  document.getElementById('ind-valor').style.display=m==='manual'?'none':'block';
+}
+async function saveIndirecto(){if(!permitirEscrituraF7())return;
+  const id=document.getElementById('ind-edit-id').value;
+  const nombre=document.getElementById('ind-nombre').value.trim();
+  if(!nombre)return alert('Ingresá un nombre.');
+  const row={nombre,metodo:document.getElementById('ind-metodo').value,valor:parseFloat(document.getElementById('ind-valor').value)||0,activo:true};
+  if(id)row.id=id;
+  const{data,error}=await sbClient.from('costos_indirectos').upsert(row,{onConflict:'id'}).select();
+  if(error)return alert('Error: '+error.message);
+  if(id){const idx=costosIndirectos.findIndex(x=>x.id===id);if(idx>=0)costosIndirectos[idx]=data[0];}
+  else costosIndirectos.push(data[0]);
+  closeModal('indirecto');renderIndirectos();
+}
+async function deleteIndirecto(id){if(!permitirEscrituraF7())return;
+  if(!confirm('¿Eliminar?'))return;
+  await sbClient.from('costos_indirectos').delete().eq('id',id);
+  costosIndirectos=costosIndirectos.filter(x=>x.id!==id);renderIndirectos();
+}
+
+// ── CONFIG RENTABILIDAD ─────────────────────────────────────────────────────
+function renderConfigRent(){
+  const m=document.getElementById('cfg-rent-metodo');
+  const o=document.getElementById('cfg-rent-objetivo');
+  const v=document.getElementById('cfg-rent-verde');
+  const a=document.getElementById('cfg-rent-amarillo');
+  if(m)m.value=configRentabilidad.metodo_default;
+  if(o)o.value=configRentabilidad.objetivo_default;
+  if(v)v.value=configRentabilidad.semaforo_verde;
+  if(a)a.value=configRentabilidad.semaforo_amarillo;
+}
+async function saveConfigRent(){if(!permitirEscrituraF7())return;
+  const metodo=document.getElementById('cfg-rent-metodo').value;
+  let objetivo,verde,amarillo;
+  try{objetivo=numeroCosto(valorF7('cfg-rent-objetivo'),'Objetivo');verde=numeroCosto(valorF7('cfg-rent-verde'),'Umbral verde');amarillo=numeroCosto(valorF7('cfg-rent-amarillo'),'Umbral amarillo');calcularRentabilidad(100,1,metodo,objetivo,'',{semaforo_verde:verde,semaforo_amarillo:amarillo});}catch(e){return alert(e.message);}
+  configRentabilidad={metodo_default:metodo,objetivo_default:objetivo,semaforo_verde:verde,semaforo_amarillo:amarillo};
+  const rows=[{clave:'metodo_default',valor:metodo},{clave:'objetivo_default',valor:String(objetivo)},{clave:'semaforo_verde',valor:String(verde)},{clave:'semaforo_amarillo',valor:String(amarillo)}];
+  for(const row of rows){await sbClient.from('config_rentabilidad').upsert(row,{onConflict:'clave'});}
+  setSyncStatus('ok','Configuración guardada');
+}
+
+// ── CONFIG TRANSPORTE ───────────────────────────────────────────────────────
+function renderConfigTrans(){
+  const m=document.getElementById('cfg-trans-modo');
+  const k=document.getElementById('cfg-trans-km');
+  if(m)m.value=configTransporte.modo_default;
+  if(k)k.value=configTransporte.costo_km;
+}
+async function saveConfigTrans(){if(!permitirEscrituraF7())return;
+  const modo=document.getElementById('cfg-trans-modo').value;
+  let km;try{km=numeroCosto(valorF7('cfg-trans-km'),'Costo por kilómetro');}catch(e){return alert(e.message);}
+  configTransporte={modo_default:modo,costo_km:km};
+  const rows=[{clave:'modo_default',valor:modo},{clave:'costo_km',valor:String(km)}];
+  for(const row of rows){await sbClient.from('config_transporte').upsert(row,{onConflict:'clave'});}
+  setSyncStatus('ok','Configuración guardada');
 }
 
 function switchMantTab(name,btn){
@@ -1602,6 +1706,11 @@ function switchMantTab(name,btn){
   btn.classList.add('active');
   document.getElementById('mant-'+name).classList.add('active');
   if(name==='usuarios')loadUsuarios();
+  if(name==='roles')renderRoles();
+  if(name==='operativos')renderOperativos();
+  if(name==='indirectos')renderIndirectos();
+  if(name==='config-rent')renderConfigRent();
+  if(name==='config-trans')renderConfigTrans();
 }
 
 function renderLista(tipo,containerId){
@@ -1632,65 +1741,6 @@ function renderTodasListas(){
 }
 
 // ── PARRILLEROS Y EQUIPOS DINÁMICOS ────────────────────────────────────────
-function addParrilleroRow(nombre='',costo=0){
-  const container=document.getElementById('parrilleros-container');
-  const div=document.createElement('div');
-  div.className='form-row';div.style.marginBottom='6px';div.style.alignItems='center';
-  div.innerHTML=`
-    <div class="form-group" style="flex:2;"><input type="text" placeholder="Nombre del parrillero" value="${nombre}" oninput="recalcPersonalEquipo()" style="width:100%;"/></div>
-    <div class="form-group" style="flex:1;"><input type="number" placeholder="Costo (₡)" value="${costo}" min="0" oninput="recalcPersonalEquipo()" style="width:100%;"/></div>
-    <button class="btn sm danger" style="flex-shrink:0;margin-top:0;" onclick="this.parentElement.remove();recalcPersonalEquipo();"><i class="ti ti-x"></i></button>`;
-  container.appendChild(div);
-  recalcPersonalEquipo();
-}
-function addEquipoRow(equipoVal='',costo=0){
-  const container=document.getElementById('equipos-container');
-  const div=document.createElement('div');
-  div.className='form-row';div.style.marginBottom='6px';div.style.alignItems='center';
-  const opts=listasConfig.equipos.map(e=>`<option value="${e.valor}" ${e.valor===equipoVal?'selected':''}>${e.etiqueta}</option>`).join('');
-  div.innerHTML=`
-    <div class="form-group" style="flex:2;"><select onchange="recalcPersonalEquipo()" style="width:100%;"><option value="">— Seleccionar equipo —</option>${opts}</select></div>
-    <div class="form-group" style="flex:1;"><input type="number" placeholder="Costo (₡)" value="${costo}" min="0" oninput="recalcPersonalEquipo()" style="width:100%;"/></div>
-    <button class="btn sm danger" style="flex-shrink:0;margin-top:0;" onclick="this.parentElement.remove();recalcPersonalEquipo();"><i class="ti ti-x"></i></button>`;
-  container.appendChild(div);
-  recalcPersonalEquipo();
-}
-function recalcPersonalEquipo(){
-  // Parrilleros
-  const pRows=document.querySelectorAll('#parrilleros-container .form-row');
-  let totalPersonal=0;
-  pRows.forEach(row=>{const inputs=row.querySelectorAll('input');totalPersonal+=parseFloat(inputs[1]?.value)||0;});
-  document.getElementById('total-personal').textContent=fmtMoney(totalPersonal);
-  // Equipos
-  const eRows=document.querySelectorAll('#equipos-container .form-row');
-  let totalEquipo=0;
-  eRows.forEach(row=>{const inp=row.querySelector('input[type="number"]');totalEquipo+=parseFloat(inp?.value)||0;});
-  document.getElementById('total-equipo-label').textContent=fmtMoney(totalEquipo);
-  document.getElementById('c-costoequipo').value=totalEquipo;
-  recalc();
-}
-function getParrillerosList(){
-  const rows=document.querySelectorAll('#parrilleros-container .form-row');
-  return Array.from(rows).map(row=>{
-    const inputs=row.querySelectorAll('input');
-    return{nombre:inputs[0]?.value||'',costo:parseFloat(inputs[1]?.value)||0};
-  }).filter(p=>p.nombre||p.costo);
-}
-function getEquiposList(){
-  const rows=document.querySelectorAll('#equipos-container .form-row');
-  return Array.from(rows).map(row=>{
-    const sel=row.querySelector('select');
-    const inp=row.querySelector('input[type="number"]');
-    return{equipo:sel?.value||'',costo:parseFloat(inp?.value)||0};
-  }).filter(e=>e.equipo||e.costo);
-}
-function initCotizarPersonalEquipo(){
-  document.getElementById('parrilleros-container').innerHTML='';
-  document.getElementById('equipos-container').innerHTML='';
-  addParrilleroRow();
-  addEquipoRow();
-}
-
 function openModalLista(tipo){
   document.getElementById('lista-edit-id').value='';document.getElementById('lista-tipo').value=tipo;
   document.getElementById('lista-valor').value='';document.getElementById('lista-etiqueta').value='';
@@ -1731,7 +1781,7 @@ function editListaItem(id){
   document.getElementById('modal-lista').classList.add('open');
 }
 
-async function saveListaItem(){
+async function saveListaItem(){if(!permitirEscrituraF7())return;
   const editId=document.getElementById('lista-edit-id').value;
   const tipo=document.getElementById('lista-tipo').value;
   const valor=document.getElementById('lista-valor').value.trim().toLowerCase().replace(/\s+/g,'_');
@@ -1751,7 +1801,7 @@ async function saveListaItem(){
   closeModal('lista');renderTodasListas();
 }
 
-async function deleteListaItem(id,tipo){
+async function deleteListaItem(id,tipo){if(!permitirEscrituraF7())return;
   if(!confirm('¿Eliminar?'))return;
   await dbDelete('listas_config',id);
   const key=tipo==='categoria'?'categorias':tipo==='unidad'?'unidades':tipo==='proveedor'?'proveedores':'equipos';
@@ -1793,7 +1843,7 @@ function parseCSV(text){
   if(valid.length){document.getElementById('import-preview-area').innerHTML=`<div style="font-size:11px;color:var(--text2);margin:10px 0 4px;">Vista previa:</div><div class="preview-wrap"><table style="font-size:12px;width:100%"><thead><tr><th style="padding:6px 10px;background:var(--bg2);">Nombre</th><th style="padding:6px 10px;background:var(--bg2);">Cat.</th><th style="padding:6px 10px;background:var(--bg2);">Unidad</th><th style="padding:6px 10px;background:var(--bg2);">Costo</th></tr></thead><tbody>${valid.slice(0,5).map(r=>`<tr><td style="padding:5px 10px;">${r.nombre}</td><td style="padding:5px 10px;">${capCat(r.categoria)}</td><td style="padding:5px 10px;">${r.unidad}</td><td style="padding:5px 10px;text-align:right;">${fmtMoney(r.costo)}</td></tr>`).join('')}</tbody></table></div>`;document.getElementById('import-actions').style.display='block';}
 }
 function setImportStatus(type,msg){const icons={ok:'ti-circle-check',warn:'ti-alert-triangle',err:'ti-circle-x'};document.getElementById('import-status-area').innerHTML=`<div class="import-status ${type}"><i class="ti ${icons[type]}" style="font-size:16px;"></i>${msg}</div>`;}
-async function confirmImport(){
+async function confirmImport(){if(!permitirEscrituraF7())return;
   if(importMode==='xlsx'&&xlsxFullData){
     let ai=0,ui=0;
     for(const row of xlsxFullData.inv){const ei=row.id?invData.findIndex(i=>i.id===row.id):-1;const id=row.id||(ei>=0?invData[ei].id:nextId('INS',invData));const item={id,nombre:row.nombre,categoria:row.categoria,cantidad:row.cantidad,unidad:row.unidad,costo:row.costo,merma:row.merma||0,proveedor:row.proveedor,obs:row.obs};if(ei>=0){invData[ei]=item;ui++;}else{invData.push(item);ai++;}await dbUpsert('inventario',item);}
@@ -1821,8 +1871,520 @@ function exportExcel(){
   XLSX.writeFile(wb,'BrumasBBQ_datos.xlsx');
 }
 
+// ── FASE 7: motor compartido de costeo y cotización ────────────────────────
+function numeroCosto(value, etiqueta, positivo=false){
+  if(value==='' || value===null || value===undefined)throw new Error('Completá '+etiqueta+'.');
+  const n=Number(value);
+  if(!Number.isFinite(n)||n<0||(positivo&&n===0))throw new Error(etiqueta+': ingresá un número '+(positivo?'mayor que cero':'no negativo')+'.');
+  return n;
+}
+function normalizarUnidad(u){
+  const v=String(u||'').trim().toLowerCase();
+  return ({gramo:'g',gramos:'g',kilogramo:'kg',kilogramos:'kg',litro:'l',litros:'l',mililitro:'ml',mililitros:'ml',unidad:'unidades',und:'unidades',ud:'unidades',porcion:'porciones','porción':'porciones'})[v]||v;
+}
+function convertirCantidad(cantidad,desde,hasta){
+  const n=numeroCosto(cantidad,'Cantidad'),a=normalizarUnidad(desde),b=normalizarUnidad(hasta);
+  if(a===b)return n;
+  const unidades={g:['masa',1],kg:['masa',1000],ml:['volumen',1],l:['volumen',1000]};
+  if(!unidades[a]||!unidades[b]||unidades[a][0]!==unidades[b][0])throw new Error('No se puede convertir '+(desde||'unidad vacía')+' a '+(hasta||'unidad vacía')+'. Revisá el menú o la receta.');
+  return n*unidades[a][1]/unidades[b][1];
+}
+function costoReal(inv){
+  const merma=numeroCosto(inv.merma??0,'Merma de '+inv.nombre);
+  if(merma>=100)throw new Error('La merma de '+inv.nombre+' debe ser menor a 100%.');
+  return numeroCosto(inv.costo,'Costo de '+inv.nombre)/(1-merma/100);
+}
+function costoRecetaActual(cf,visitados=[]){
+  if(visitados.includes(cf.id))throw new Error('Hay una referencia circular en la receta '+cf.nombre+'.');
+  const items=cf.items||[];
+  if(!items.length)return numeroCosto(cf.total??0,'Costo de receta');
+  return items.reduce((sum,item)=>sum+costearItem(item,[...visitados,cf.id]).costo,0);
+}
+function costearItem(item,visitados=[]){
+  const it=typeof item==='object'?item:{id:item,qty:1};
+  const inv=invData.find(x=>x.id===it.id),cf=cfData.find(x=>x.id===it.id);
+  const qty=numeroCosto(it.qty??1,'Cantidad del ítem '+it.id);
+  if(inv){
+    const cantidad=convertirCantidad(qty,it.unidad||inv.unidad,inv.unidad);
+    return {id:inv.id,nombre:inv.nombre,cantidad,unidad:inv.unidad,costo:cantidad*costoReal(inv)};
+  }
+  if(!cf)throw new Error('No se encontró el insumo o receta '+it.id+'.');
+  const total=costoRecetaActual(cf,visitados);
+  // Registros anteriores sin unidad representan lotes completos, como antes.
+  if(!it.unidad)return {id:cf.id,nombre:cf.nombre,cantidad:qty,unidad:'lotes',costo:total*qty};
+  const rendimiento=numeroCosto(cf.rendimiento_cantidad,'Rendimiento de '+cf.nombre,true);
+  const cantidad=convertirCantidad(qty,it.unidad,cf.rendimiento_unidad);
+  return {id:cf.id,nombre:cf.nombre,cantidad,unidad:cf.rendimiento_unidad,costo:total*cantidad/rendimiento};
+}
+function calcMenuCostoPorPersona(mn){return calcularCostoIngredientes(mn).costoPorPersona;}
+function calcularProduccion(personas,seguridad=0){
+  const n=numeroCosto(personas,'Personas facturadas',true);
+  if(!Number.isInteger(n))throw new Error('Las personas facturadas deben ser un número entero.');
+  return {personas:n,seguridad:numeroCosto(seguridad,'Factor de seguridad'),produccion:Math.ceil(n*(1+Number(seguridad)/100))};
+}
+function calcularManoObra(filas){return filas.map(p=>{const cantidad=numeroCosto(p.cantidad,'Cantidad de personal',true);if(!Number.isInteger(cantidad))throw new Error('La cantidad de personal debe ser entera.');return {...p,costo:cantidad*numeroCosto(p.horas,'Horas')*numeroCosto(p.tarifa,'Tarifa por hora')};});}
+function calcularOperativos(filas){return filas.map(p=>({...p,costo:numeroCosto(p.cantidad,'Cantidad operativa')*numeroCosto(p.costo_unitario,'Costo operativo')}));}
+function calcularEquipos(filas){return filas.map(p=>({...p,costo:numeroCosto(p.cantidad,'Cantidad de equipo',true)*numeroCosto(p.dias,'Días de equipo',true)*numeroCosto(p.costo_unitario,'Costo de equipo')}));}
+function calcularTransporte(t){
+  if(!['manual','km'].includes(t.modo))throw new Error('Modo de transporte inválido.');
+  const km=numeroCosto(t.ida,'Km de ida')+numeroCosto(t.regreso,'Km de regreso');
+  const tarifa=numeroCosto(t.costo_km,'Costo/km');
+  const kilometraje=t.modo==='km'?km*tarifa:0;
+  const base=t.modo==='km'?kilometraje:numeroCosto(t.manual,'Transporte manual');
+  return {...t,km,kilometraje,costo:base+numeroCosto(t.peajes,'Peajes')+numeroCosto(t.parqueos,'Parqueos')+numeroCosto(t.viaticos,'Viáticos')+numeroCosto(t.otros,'Otros de transporte')};
+}
+function calcularIndirectos(filas,personas,ingredientes,directo){
+  return filas.map(p=>{
+    const valor=numeroCosto(p.valor,'Valor de indirecto');
+    const bases={fijo:1,manual:1,por_persona:personas,pct_ingredientes:ingredientes/100,pct_directo:directo/100};
+    if(!(p.metodo in bases))throw new Error('Método de indirecto inválido.');
+    return {...p,costo:valor*bases[p.metodo]};
+  });
+}
+function calcularRentabilidad(costo,personas,metodo,objetivo,comercial,umbrales){
+  numeroCosto(costo,'Costo total');numeroCosto(personas,'Personas',true);numeroCosto(objetivo,'Objetivo');
+  if(!['markup','margen'].includes(metodo))throw new Error('Método de rentabilidad inválido.');
+  if(metodo==='margen'&&objetivo>=100)throw new Error('El margen objetivo debe ser menor a 100%.');
+  const sugerido=metodo==='margen'?costo/(1-objetivo/100):costo*(1+objetivo/100);
+  const precioPersona=comercial===''||comercial===null||comercial===undefined?sugerido/personas:numeroCosto(comercial,'Precio comercial');
+  const venta=precioPersona*personas,utilidad=venta-costo;
+  const margen=venta>0?utilidad/venta*100:null,markup=costo>0?utilidad/costo*100:null;
+  const verde=numeroCosto(umbrales.semaforo_verde,'Umbral verde'),amarillo=numeroCosto(umbrales.semaforo_amarillo,'Umbral amarillo');
+  if(amarillo>verde||verde>=100)throw new Error('Revisá los umbrales de rentabilidad en Mantenimiento.');
+  const estado=margen===null||utilidad<0||margen<amarillo?'rojo':margen<verde?'amarillo':'verde';
+  return {sugerido,sugeridoPersona:sugerido/personas,precioPersona,venta,utilidad,margen,markup,estado,diferencia:venta-sugerido,utilidadPersona:utilidad/personas};
+}
+function calcularCostoEvento(entrada){
+  const produccion=calcularProduccion(entrada.personas,entrada.seguridad);
+  const personal=calcularManoObra(entrada.personal),equipos=calcularEquipos(entrada.equipos),operativos=calcularOperativos(entrada.operativos),transporte=calcularTransporte(entrada.transporte);
+  const suma=rows=>rows.reduce((s,p)=>s+p.costo,0);
+  const ingredientes=numeroCosto(entrada.ingredientes.costoPorPersona,'Costo de ingredientes por porción')*produccion.produccion;
+  const directo=ingredientes+suma(personal)+suma(equipos)+suma(operativos)+transporte.costo;
+  const indirectos=calcularIndirectos(entrada.indirectos,produccion.personas,ingredientes,directo);
+  const otros=numeroCosto(entrada.otros,'Otros costos'),total=directo+suma(indirectos)+otros;
+  const rentabilidad=calcularRentabilidad(total,produccion.personas,entrada.metodo,entrada.objetivo,entrada.comercial,entrada.umbrales);
+  if(![ingredientes,directo,total,...Object.values(rentabilidad).filter(x=>typeof x==='number')].every(Number.isFinite))throw new Error('Los valores ingresados exceden el rango de cálculo.');
+  return {produccion,personal,equipos,operativos,transporte,indirectos,ingredientes,directo,otros,total,costoPersona:total/produccion.personas,rentabilidad};
+}
+function escapeF7(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function valorF7(id){const e=document.getElementById(id);if(!e)throw new Error('Falta el campo '+id+'.');return e.value;}
+function ponerF7(id,v){document.getElementById(id).value=v??'';}
+function campoF7(label,key,value,type='number'){
+  return `<label class="form-group"><span class="form-label">${escapeF7(label)}</span><input data-f7="${key}" type="${type}" ${type==='number'?'min="0" step="any"':''} value="${escapeF7(value)}" oninput="recalc()"></label>`;
+}
+function selectorF7(label,key,options,value,change='recalc()'){
+  const opts=[...options];if(value&&!opts.some(x=>String(x[0])===String(value)))opts.push([value,value+' (guardado)']);
+  return `<label class="form-group"><span class="form-label">${label}</span><select data-f7="${key}" onchange="${change}">${opts.map(([v,l])=>`<option value="${escapeF7(v)}" ${String(v)===String(value)?'selected':''}>${escapeF7(l)}</option>`).join('')}</select></label>`;
+}
+let cotizacionEditando=null,baseIngredientesF7=null,cotizacionInicializada=false,guardandoF7=false;
+function agregarFilaF7(tipo,data={}){
+  const row=document.createElement('div');row.className='f7-row';row.dataset.tipo=tipo;
+  let html='';
+  if(tipo==='personal')html=selectorF7('Rol','rol',[['','Personal manual'],...rolesPersonal.map(x=>[x.nombre,x.nombre])],data.rol||'',"aplicarCatalogoF7(this,'personal')")+campoF7('Nombre opcional','nombre',data.nombre||'','text')+campoF7('Personas','cantidad',data.cantidad??1)+campoF7('Horas','horas',data.horas??1)+campoF7('Tarifa/hora (₡)','tarifa',data.tarifa??data.costo??0);
+  if(tipo==='equipos')html=selectorF7('Equipo','equipo',[['','Equipo manual'],...listasConfig.equipos.map(x=>[x.valor,x.etiqueta])],data.equipo||'',"aplicarCatalogoF7(this,'equipos')")+campoF7('Cantidad requerida','cantidad',data.cantidad??1)+campoF7('Días','dias',data.dias??1)+campoF7('Costo/uso (₡)','costo_unitario',data.costo_unitario??data.costo??0);
+  if(tipo==='operativos')html=selectorF7('Concepto','nombre',[['','Concepto manual'],...costosOperativos.map(x=>[x.nombre,x.nombre])],data.nombre||'',"aplicarCatalogoF7(this,'operativos')")+campoF7('Cantidad','cantidad',data.cantidad??1)+campoF7('Unidad','unidad',data.unidad||'','text')+campoF7('Costo unitario (₡)','costo_unitario',data.costo_unitario??0);
+  if(tipo==='indirectos')html=selectorF7('Concepto','nombre',[['','Indirecto manual'],...costosIndirectos.map(x=>[x.nombre,x.nombre])],data.nombre||'',"aplicarCatalogoF7(this,'indirectos')")+selectorF7('Método','metodo',Object.entries(METODO_LABELS),data.metodo||'fijo')+campoF7('Valor (₡ o %)','valor',data.valor??0);
+  row.innerHTML=html+'<div class="f7-row-foot"><span class="f7-subtotal"></span><button class="btn xs danger" onclick="this.closest(\'.f7-row\').remove();recalc()">Quitar</button></div>';
+  document.getElementById(({personal:'parrilleros-container',equipos:'equipos-container',operativos:'operativos-container',indirectos:'indirectos-container'})[tipo]).appendChild(row);
+  recalc();
+}
+function aplicarCatalogoF7(select,tipo){
+  const row=select.closest('.f7-row'),set=(key,v)=>row.querySelector(`[data-f7="${key}"]`).value=v??0;
+  if(tipo==='personal'){const x=rolesPersonal.find(x=>x.nombre===select.value);if(x)set('tarifa',x.tarifa_hora);}
+  if(tipo==='equipos'){const x=listasConfig.equipos.find(x=>x.valor===select.value);if(x)set('costo_unitario',x.costo);}
+  if(tipo==='operativos'){const x=costosOperativos.find(x=>x.nombre===select.value);if(x){set('costo_unitario',x.costo_unitario);set('unidad',x.unidad||'');}}
+  if(tipo==='indirectos'){const x=costosIndirectos.find(x=>x.nombre===select.value);if(x){set('metodo',x.metodo);set('valor',x.valor);}}
+  recalc();
+}
+function filasF7(tipo){return [...document.querySelectorAll(`.f7-row[data-tipo="${tipo}"]`)].map(row=>Object.fromEntries([...row.querySelectorAll('[data-f7]')].map(e=>[e.dataset.f7,e.type==='number'?numeroCosto(e.value,e.closest('label').textContent):e.value])));}
+function addParrilleroRow(nombre='',costo=0){agregarFilaF7('personal',{nombre,costo});}
+function addEquipoRow(equipo='',costo=0){agregarFilaF7('equipos',{equipo,costo});}
+function getParrillerosList(){return calcularManoObra(filasF7('personal'));}
+function getEquiposList(){return calcularEquipos(filasF7('equipos'));}
+function recalcPersonalEquipo(){recalc();}
+function initCotizarPersonalEquipo(){['parrilleros-container','equipos-container','operativos-container','indirectos-container'].forEach(id=>document.getElementById(id).replaceChildren());}
+function populateCotizarSelects(recalcular=true){
+  const sel=document.getElementById('c-menu'),anterior=sel.value;
+  const opciones=menuData.map(m=>[m.id,m.nombre]);
+  if(baseIngredientesF7?.menu_id&&!opciones.some(x=>x[0]===baseIngredientesF7.menu_id))opciones.push([baseIngredientesF7.menu_id,baseIngredientesF7.menu_nombre+' (guardado)']);
+  sel.innerHTML='<option value="">— Seleccionar —</option>'+opciones.map(([id,n])=>`<option value="${escapeF7(id)}">${escapeF7(n)}</option>`).join('');
+  sel.value=anterior;
+  if(!cotizacionInicializada){cotizacionInicializada=true;nuevaCotizacionF7();}else if(recalcular)recalc();
+}
+function nuevaCotizacionF7(){
+  cotizacionEditando=null;cotizacionRevisionF8=null;baseIngredientesF7=null;initCotizarPersonalEquipo();
+  const values={'c-cliente':'','c-fecha':fechaLocalEvento(),'c-personas':20,'c-menu':'','c-notas':'','c-otros':0,'c-seguridad':0,'c-metodo':configRentabilidad.metodo_default,'c-margen':configRentabilidad.objetivo_default,'c-comercial':'','c-trans-modo':configTransporte.modo_default,'c-trans-km':configTransporte.costo_km,'c-trans-manual':0,'c-trans-ida':0,'c-trans-regreso':0,'c-trans-peajes':0,'c-trans-parqueos':0,'c-trans-viaticos':0,'c-trans-otros':0};
+  Object.entries(values).forEach(([k,v])=>ponerF7(k,v));document.getElementById('f7-titulo').textContent='Nueva cotización';recalc();
+}
+function actualizarIngredientesF7(){baseIngredientesF7=null;recalc();}
+function leerCotizacionF7(){
+  const menuId=valorF7('c-menu'),menu=menuData.find(m=>m.id===menuId);
+  let ingredientes;
+  if(baseIngredientesF7&&baseIngredientesF7.menu_id===menuId)ingredientes=baseIngredientesF7;
+  else{
+    if(!menu)throw new Error('Seleccioná un menú para calcular la cotización.');
+    ingredientes={...calcularCostoIngredientes(menu),menu_id:menu.id,menu_nombre:menu.nombre,menu:JSON.parse(JSON.stringify(menu))};
+    baseIngredientesF7=ingredientes;
+  }
+  return {personas:valorF7('c-personas'),seguridad:valorF7('c-seguridad'),ingredientes,personal:filasF7('personal'),equipos:filasF7('equipos'),operativos:filasF7('operativos'),indirectos:filasF7('indirectos'),otros:valorF7('c-otros'),metodo:valorF7('c-metodo'),objetivo:numeroCosto(valorF7('c-margen'),'Objetivo'),comercial:valorF7('c-comercial'),umbrales:{...configRentabilidad},transporte:{modo:valorF7('c-trans-modo'),manual:valorF7('c-trans-manual'),ida:valorF7('c-trans-ida'),regreso:valorF7('c-trans-regreso'),costo_km:valorF7('c-trans-km'),peajes:valorF7('c-trans-peajes'),parqueos:valorF7('c-trans-parqueos'),viaticos:valorF7('c-trans-viaticos'),otros:valorF7('c-trans-otros')}};
+}
+function advertenciasEquipoF7(equipos){
+  const totales={};equipos.forEach(e=>{totales[e.equipo]=(totales[e.equipo]||0)+Number(e.cantidad);});
+  return Object.entries(totales).flatMap(([id,n])=>{const c=listasConfig.equipos.find(x=>x.valor===id);return c&&c.cantidad!=null&&n>Number(c.cantidad)?[`${c.etiqueta}: se requieren ${n}; disponibles ${c.cantidad}.`]:[];});
+}
+function filasResumenF7(entrada,r){
+  const s=xs=>xs.reduce((a,x)=>a+x.costo,0),v=r.rentabilidad,pct=x=>x===null?'No definido':x.toFixed(2)+'%';
+  return [['Cliente',valorF7('c-cliente')],['Fecha',valorF7('c-fecha')],['Menú',entrada.ingredientes.menu_nombre],['Personas facturadas',r.produccion.personas],['Personas de producción',r.produccion.produccion],['Ingredientes',fmtMoney(r.ingredientes)],['Mano de obra',fmtMoney(s(r.personal))],['Operativos',fmtMoney(s(r.operativos))],['Indirectos',fmtMoney(s(r.indirectos))],['Equipos',fmtMoney(s(r.equipos))],['Transporte',fmtMoney(r.transporte.costo)],['Otros',fmtMoney(r.otros)],['Costo directo',fmtMoney(r.directo)],['Costo total real',fmtMoney(r.total)],['Costo por persona',fmtMoney(r.costoPersona)],['Método',entrada.metodo==='margen'?'Margen sobre venta':'Markup sobre costo'],['Objetivo',entrada.objetivo+'%'],['Precio sugerido/persona',fmtMoney(v.sugeridoPersona)],['Precio comercial/persona',fmtMoney(v.precioPersona)],['Venta total',fmtMoney(v.venta)],['Utilidad bruta esperada',fmtMoney(v.utilidad)],['Margen real',pct(v.margen)],['Markup real',pct(v.markup)],['Utilidad por persona',fmtMoney(v.utilidadPersona)],['Diferencia total vs. sugerido',fmtMoney(v.diferencia)]];
+}
+function recalc(){
+  const resumen=document.getElementById('cot-resumen');if(!resumen)return;
+  const km=document.getElementById('c-trans-modo')?.value==='km';
+  document.getElementById('f7-trans-km').hidden=!km;document.getElementById('f7-trans-manual').hidden=km;
+  try{
+    const entrada=leerCotizacionF7(),r=calcularCostoEvento(entrada),s=xs=>xs.reduce((a,x)=>a+x.costo,0);
+    document.getElementById('total-personal').textContent=fmtMoney(s(r.personal));document.getElementById('total-equipo-label').textContent=fmtMoney(s(r.equipos));ponerF7('c-costoequipo',s(r.equipos));
+    ['personal','equipos','operativos','indirectos'].forEach(tipo=>document.querySelectorAll(`.f7-row[data-tipo="${tipo}"]`).forEach((row,i)=>row.querySelector('.f7-subtotal').textContent='Subtotal: '+fmtMoney(r[tipo][i].costo)));
+    const etiquetas={verde:'Rentabilidad saludable',amarillo:'Margen bajo',rojo:'Margen insuficiente o pérdida'},v=r.rentabilidad;
+    resumen.innerHTML='<div class="result-box">'+filasResumenF7(entrada,r).map(([label,value])=>`<div class="result-row"><span>${escapeF7(label)}</span><strong>${escapeF7(value)}</strong></div>`).join('')+`<div class="f7-estado ${v.estado}">${etiquetas[v.estado]}</div>`+(v.diferencia<0?'<p>El precio comercial reduce la utilidad respecto al sugerido.</p>':'')+'</div>';
+    const warnings=advertenciasEquipoF7(r.equipos);
+    document.getElementById('f7-advertencias').textContent=warnings.join(' ');
+    document.getElementById('f7-trans-total').textContent=`${r.transporte.km} km · Kilometraje: ${fmtMoney(r.transporte.kilometraje)} · Total transporte: ${fmtMoney(r.transporte.costo)}`;
+    document.getElementById('f7-base-info').textContent=`Ingredientes con inflación de ${entrada.ingredientes.inflacion??0}%. Se conservan estos costos al reabrir. Usá “Actualizar precios” para tomar el catálogo actual.`;
+  }catch(e){resumen.innerHTML='<div role="alert" class="f7-error">'+escapeF7(e.message)+'</div>';document.querySelectorAll('.f7-subtotal').forEach(x=>x.textContent='Pendiente de cálculo');}
+}
+function permitirEscrituraF7(){if(currentUserRole!=='full'){alert('Tu usuario tiene acceso de solo lectura.');return false;}return true;}
+function prepararRegistroF7(cliente,fecha,notas,entrada,r){
+  const s=xs=>xs.reduce((a,x)=>a+x.costo,0),v=r.rentabilidad;
+  return {cliente,fecha,notas,menu_id:entrada.ingredientes.menu_id||null,menu_nombre:entrada.ingredientes.menu_nombre||'',personas:r.produccion.personas,parrilleros:r.personal.reduce((s,p)=>s+Number(p.cantidad),0),costo_parrillero:s(r.personal),parrilleros_detalle:r.personal,equipos_seleccionados:r.equipos,costo_insumos:r.ingredientes,costo_por_persona_menu:entrada.ingredientes.costoPorPersona,margen_inflacion:entrada.ingredientes.inflacion??0,costo_equipo:s(r.equipos),otros_costos:r.otros,margen:entrada.objetivo,costo_total:r.total,ganancia:v.utilidad,precio_final:v.venta,precio_por_persona:v.precioPersona,calculo_evento:JSON.parse(JSON.stringify({version:8,capturado_en:new Date().toISOString(),entrada,resultado:r}))};
+}
+async function guardarCotizacion(){
+  if(!permitirEscrituraF7()||guardandoF7)return;
+  try{
+    const cliente=valorF7('c-cliente').trim();if(!cliente)throw new Error('Ingresá el nombre del cliente.');
+    const entrada=leerCotizacionF7(),r=calcularCostoEvento(entrada);
+    const warnings=advertenciasEquipoF7(r.equipos);
+    if(warnings.length&&!confirm(warnings.join('\n')+'\n¿Continuar con esta disponibilidad?'))return;
+    const row=prepararRegistroF7(cliente,valorF7('c-fecha')||fechaLocalEvento(),valorF7('c-notas'),entrada,r);
+    guardandoF7=true;setSyncStatus('loading','Guardando...');
+    if(cotizacionEditando&&cotizacionRevisionF8==null)throw new Error('Ejecutá el SQL de fases 8–11 y recargá el historial antes de editar.');
+    const query=cotizacionEditando?sbClient.from('cotizaciones').update(row).eq('id',cotizacionEditando).eq('revision',cotizacionRevisionF8):sbClient.from('cotizaciones').insert(row);
+    const {data,error}=await query.select().maybeSingle();if(error)throw new Error(error.message);if(!data)throw new Error('La cotización cambió en otra sesión o no tenés permiso. Recargá el historial.');
+    const idx=cotizaciones.findIndex(x=>x.id===data.id);if(idx>=0)cotizaciones[idx]=data;else cotizaciones.unshift(data);
+    cotizacionEditando=data.id;cotizacionRevisionF8=data.revision??null;renderDashboard();document.getElementById('f7-titulo').textContent='Editar cotización';setSyncStatus('ok','Sincronizado');renderHistorial();alert('Cotización guardada correctamente.');
+  }catch(e){setSyncStatus('error','No se guardó');alert('No se pudo guardar: '+e.message);}finally{guardandoF7=false;}
+}
+function exportCotizacion(){
+  try{
+    const entrada=leerCotizacionF7(),r=calcularCostoEvento(entrada);
+    const rows=[...filasResumenF7(entrada,r),['Estado rentabilidad',r.rentabilidad.estado],['Factor de seguridad (%)',entrada.seguridad],['Notas',valorF7('c-notas')]];
+    ['personal','operativos','indirectos','equipos','transporte'].forEach(key=>{rows.push([], [key]);const list=Array.isArray(r[key])?r[key]:[r[key]];list.forEach(x=>Object.entries(x).forEach(([k,v])=>rows.push([k,v])));});
+    rows.push([],['Ingredientes por porción','Cantidad','Unidad','Costo base','Costo proyectado']);
+    (entrada.ingredientes.detalle||[]).forEach(x=>rows.push([x.nombre,x.cantidad,x.unidad,x.costo,x.costo_proyectado]));
+    const csv=rows.map(row=>row.map(v=>{let s=String(v??'');if(typeof v==='string'&&/^[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}).join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'})),a=document.createElement('a');a.href=url;a.download='cotizacion_'+(valorF7('c-cliente')||'Cliente').replace(/[^\p{L}\p{N}_-]/gu,'_')+'.csv';a.click();URL.revokeObjectURL(url);
+  }catch(e){alert(e.message);}
+}
+function entradaHistoricaF7(c){
+  if([7,8].includes(c.calculo_evento?.version)&&c.calculo_evento?.entrada)return JSON.parse(JSON.stringify(c.calculo_evento.entrada));
+  const n=Number(c.personas)||1;
+  return {personas:n,seguridad:0,ingredientes:{menu_id:c.menu_id||'',menu_nombre:c.menu_nombre||'Sin menú',costoPorPersona:c.costo_insumos!=null?Number(c.costo_insumos)/n:Number(c.costo_por_persona_menu)||0,inflacion:c.margen_inflacion??0,detalle:[]},personal:c.parrilleros_detalle?.length?c.parrilleros_detalle.map(p=>({nombre:p.nombre||'',cantidad:1,horas:1,tarifa:p.costo||0})):Number(c.costo_parrillero)>0?[{nombre:'Personal histórico',cantidad:1,horas:1,tarifa:Number(c.costo_parrillero)}]:[],equipos:c.equipos_seleccionados?.length?c.equipos_seleccionados.map(p=>({equipo:p.equipo||'',cantidad:1,dias:1,costo_unitario:p.costo||0})):Number(c.costo_equipo)>0?[{equipo:'Equipo histórico',cantidad:1,dias:1,costo_unitario:Number(c.costo_equipo)}]:[],operativos:[],indirectos:[],otros:c.otros_costos??0,metodo:'markup',objetivo:c.margen??0,comercial:c.precio_final!=null?Number(c.precio_final)/n:'',umbrales:{...configRentabilidad},transporte:{modo:'manual',manual:0,ida:0,regreso:0,costo_km:0,peajes:0,parqueos:0,viaticos:0,otros:0}};
+}
+function openEditCotizacion(id){
+  const c=cotizaciones.find(x=>x.id===id);if(!c)return;
+  const e=entradaHistoricaF7(c);cotizacionInicializada=true;cotizacionEditando=c.id;cotizacionRevisionF8=c.revision??null;baseIngredientesF7=e.ingredientes;
+  populateCotizarSelects(false);initCotizarPersonalEquipo();
+  const values={'c-cliente':c.cliente,'c-fecha':c.fecha,'c-notas':c.notas,'c-personas':e.personas,'c-menu':e.ingredientes.menu_id,'c-seguridad':e.seguridad,'c-otros':e.otros,'c-metodo':e.metodo,'c-margen':e.objetivo,'c-comercial':e.comercial,'c-trans-modo':e.transporte.modo,'c-trans-manual':e.transporte.manual,'c-trans-ida':e.transporte.ida,'c-trans-regreso':e.transporte.regreso,'c-trans-km':e.transporte.costo_km,'c-trans-peajes':e.transporte.peajes,'c-trans-parqueos':e.transporte.parqueos,'c-trans-viaticos':e.transporte.viaticos,'c-trans-otros':e.transporte.otros};
+  Object.entries(values).forEach(([k,v])=>ponerF7(k,v));['personal','equipos','operativos','indirectos'].forEach(tipo=>(e[tipo]||[]).forEach(row=>agregarFilaF7(tipo,row)));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('sec-cotizar').classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',(b.getAttribute('onclick')||'').includes("'cotizar'")));
+  document.getElementById('f7-titulo').textContent='Editar cotización';recalc();
+}
+function recalcEdit(){recalc();}
+async function saveCotizacionEdit(){return guardarCotizacion();}
+function recalcMenuTotal(){
+  let total=0,hayError=false;
+  document.querySelectorAll('.combo-block').forEach(block=>{
+    let sub=0;
+    block.querySelectorAll('.combo-item-row').forEach(row=>{
+      const id=row.querySelector('.item-picker-value')?.value,span=row.querySelector('.item-subtotal');
+      if(!id){span.textContent=fmtMoney(0);return;}
+      try{const item={id,qty:row.querySelector('.item-qty').value,unidad:row.querySelector('.item-unidad').value};const n=costearItem(item).costo;sub+=n;span.textContent=fmtMoney(n);span.title='Costo con merma; sin inflación';}catch(e){span.textContent=e.message;hayError=true;}
+    });total+=sub;block.querySelector('.combo-subtotal').textContent='Costo/persona sin inflación: '+fmtMoney(sub);
+  });document.getElementById('mn-total-costo').textContent=hayError?'Revisá unidades y rendimientos':fmtMoney(total);
+}
+
+// ── FASES 8–11: snapshots, producción, historial, resultados y Excel ────────
+const ESTADOS_EVENTO={borrador:'Borrador',enviada:'Enviada',aprobada:'Aprobada',rechazada:'Rechazada',confirmada:'Confirmada',realizada:'Realizada',cancelada:'Cancelada'};
+const CATEGORIAS_EVENTO={ingredientes:'Ingredientes',personal:'Mano de obra',operativos:'Operativos',indirectos:'Indirectos',equipos:'Equipos',transporte:'Transporte',otros:'Otros'};
+let historialCompleto=false,cargandoHistorial=null,detalleEventoId=null,listaCompraContexto=null,cotizacionRevisionF8=null,actualizandoEvento=false;
+function copiarDatos(v){return JSON.parse(JSON.stringify(v));}
+function fechaLocalEvento(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
+function sumaCostos(filas){return (filas||[]).reduce((s,x)=>s+Number(x.costo||0),0);}
+function numeroVisible(n){return Number(n).toLocaleString('es-CR',{maximumFractionDigits:4});}
+function porcentajeVisible(n){return n==null?'No definido':Number(n).toFixed(2)+'%';}
+function monedaPrecisa(n){return '₡'+Number(n).toLocaleString('es-CR',{maximumFractionDigits:4});}
+function proveedorVisible(valor){const p=listasConfig.proveedores.find(x=>x.valor===valor||x.id===valor);return p?.etiqueta||valor||'';}
+
+// Expande recetas hasta llegar al inventario; las cantidades de receta son
+// cantidades netas utilizables. La merma se aplica una sola vez al comprar.
+function expandirInsumos(item,factor=1,visitados=[],recetas=new Map()){
+  const it=typeof item==='object'?item:{id:item,qty:1};
+  const cantidad=numeroCosto(it.qty??1,'Cantidad de '+it.id)*numeroCosto(factor,'Factor de producción');
+  const inv=invData.find(x=>x.id===it.id);
+  if(inv){
+    const neta=convertirCantidad(cantidad,it.unidad||inv.unidad,inv.unidad);
+    const costoUnitario=costoReal(inv),merma=Number(inv.merma??0),compra=neta/(1-merma/100);
+    return [{id:inv.id,nombre:inv.nombre,unidad:inv.unidad,proveedor:proveedorVisible(inv.proveedor),neta,compra,merma,costo_compra:Number(inv.costo),costo:neta*costoUnitario,tipo:'insumo'}];
+  }
+  const cf=cfData.find(x=>x.id===it.id);if(!cf)throw new Error('No se encontró el insumo o receta '+it.id+'.');
+  if(visitados.includes(cf.id))throw new Error('Referencia circular en '+cf.nombre+'.');
+  const totalReceta=costoRecetaActual(cf);
+  recetas.set(cf.id,{...copiarDatos(cf),total:totalReceta,costo_por_unidad_rendimiento:Number(cf.rendimiento_cantidad)>0?totalReceta/Number(cf.rendimiento_cantidad):null});
+  let lotes=cantidad;
+  if(it.unidad)lotes=convertirCantidad(cantidad,it.unidad,cf.rendimiento_unidad)/numeroCosto(cf.rendimiento_cantidad,'Rendimiento de '+cf.nombre,true);
+  if(!cf.items?.length)return [{id:cf.id,nombre:cf.nombre,unidad:'lotes',proveedor:'',neta:lotes,compra:lotes,merma:0,costo_compra:numeroCosto(cf.total??0,'Costo de receta'),costo:lotes*Number(cf.total||0),tipo:'receta_sin_desglose'}];
+  return cf.items.flatMap(x=>expandirInsumos(x,lotes,[...visitados,cf.id],recetas));
+}
+function consolidarInsumos(filas){
+  const mapa=new Map();
+  filas.forEach(x=>{
+    const key=JSON.stringify([x.tipo,x.id,normalizarUnidad(x.unidad),x.proveedor,x.costo_compra,x.merma]);
+    const prev=mapa.get(key);if(prev){prev.neta+=x.neta;prev.compra+=x.compra;prev.costo+=x.costo;prev.costo_proyectado+=x.costo_proyectado;}else mapa.set(key,{...x});
+  });return [...mapa.values()].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+}
+function calcularCostoIngredientes(menu,inflacion=margenInflacion){
+  const tasa=numeroCosto(inflacion,'Inflación'),factor=1+tasa/100,recetas=new Map();
+  const items=(menu?.combos||[]).flatMap(c=>c.items||[]);
+  const detalle=items.map(item=>{const d=costearItem(item);return {...d,costo_proyectado:d.costo*factor};});
+  const insumos=consolidarInsumos(items.flatMap(it=>expandirInsumos(it,1,[],recetas)).map(x=>({...x,costo_proyectado:x.costo*factor})));
+  const costoPorPersona=detalle.reduce((s,x)=>s+x.costo_proyectado,0),compra=insumos.reduce((s,x)=>s+x.costo_proyectado,0);
+  if(!Number.isFinite(costoPorPersona)||Math.abs(costoPorPersona-compra)>Math.max(0.00001,Math.abs(costoPorPersona)*1e-10))throw new Error('El desglose de ingredientes no coincide con el costo del menú.');
+  return {detalle,insumos,recetas:[...recetas.values()],costoPorPersona,inflacion:tasa,desglose_completo:insumos.every(x=>x.tipo==='insumo')};
+}
+function listaCompraDesdeEntrada(e){
+  const produccion=calcularProduccion(e.personas,e.seguridad??0);
+  if(!Array.isArray(e.ingredientes?.insumos))return {filas:[],completa:false,produccion,avisos:['Esta cotización no conserva el detalle histórico de compra. No se sustituyó por precios actuales.'],total:null};
+  const filas=e.ingredientes.insumos.map(x=>({...x,neta:x.neta*produccion.produccion,compra:x.compra*produccion.produccion,costo:x.costo*produccion.produccion,costo_proyectado:x.costo_proyectado*produccion.produccion}));
+  return {filas,produccion,completa:e.ingredientes.desglose_completo!==false,avisos:e.ingredientes.desglose_completo===false?['Hay recetas sin ingredientes desglosados. Se muestran como lotes; completá sus ingredientes para obtener una lista completa.']:[],total:filas.reduce((s,x)=>s+x.costo_proyectado,0)};
+}
+function tablaListaCompra(lista){
+  return lista.avisos.map(x=>'<p class="f7-error">'+escapeF7(x)+'</p>').join('')+tablaEvento(['Producto','Neto requerido','Comprar (con merma)','Unidad','Merma','Proveedor','Costo estimado','Costo proyectado'],lista.filas.map(x=>[x.nombre,numeroVisible(x.neta),numeroVisible(x.compra),x.unidad,numeroVisible(x.merma)+'%',x.proveedor||'—',fmtMoney(x.costo),fmtMoney(x.costo_proyectado)]))+(lista.total==null?'':`<p class="f8-total">Total ingredientes proyectado: ${fmtMoney(lista.total)}</p>`);
+}
+function openListaCompra(){
+  listaCompraContexto=null;['lc-menu','lc-personas','lc-seguridad'].forEach(id=>document.getElementById(id).disabled=false);
+  document.getElementById('lc-menu').innerHTML='<option value="">— Seleccionar menú —</option>'+menuData.map(m=>`<option value="${escapeF7(m.id)}">${escapeF7(m.nombre)}</option>`).join('');
+  if(menuData.length)ponerF7('lc-menu',menuData[0].id);generarListaCompra();document.getElementById('modal-lista-compra').classList.add('open');
+}
+function abrirCompraCotizacion(id=null){
+  try{
+    const c=id?cotizaciones.find(x=>String(x.id)===String(id)):null;
+    const e=c?modeloCotizacion(c).entrada:leerCotizacionF7();
+    listaCompraContexto=copiarDatos(e);
+    document.getElementById('lc-menu').innerHTML=`<option value="snapshot">${escapeF7(e.ingredientes.menu_nombre||'Cotización')}</option>`;
+    ponerF7('lc-personas',e.personas);ponerF7('lc-seguridad',e.seguridad??0);['lc-menu','lc-personas','lc-seguridad'].forEach(id=>document.getElementById(id).disabled=true);
+    generarListaCompra();document.getElementById('modal-lista-compra').classList.add('open');
+  }catch(e){alert(e.message);}
+}
+function entradaListaCompra(){
+  if(listaCompraContexto)return copiarDatos(listaCompraContexto);
+  const menu=menuData.find(m=>m.id===valorF7('lc-menu'));if(!menu)throw new Error('Seleccioná un menú.');
+  return {personas:valorF7('lc-personas'),seguridad:valorF7('lc-seguridad'),ingredientes:{...calcularCostoIngredientes(menu),menu_nombre:menu.nombre}};
+}
+function generarListaCompra(){
+  try{const e=entradaListaCompra(),lista=listaCompraDesdeEntrada(e);document.getElementById('lc-info').textContent=`${lista.produccion.personas} personas facturadas · ${lista.produccion.produccion} porciones de producción · ${listaCompraContexto?'Costos de la cotización':'Catálogo actual'}`;document.getElementById('lc-tabla').innerHTML=tablaListaCompra(lista);}catch(e){document.getElementById('lc-info').textContent='';document.getElementById('lc-tabla').innerHTML='<p class="f7-error">'+escapeF7(e.message)+'</p>';}
+}
+function filasCompraExcel(lista){return [['Producto','Cantidad neta requerida','Cantidad a comprar','Unidad','Merma %','Proveedor','Costo compra por unidad','Costo estimado','Costo proyectado'],...lista.filas.map(x=>[x.nombre,x.neta,x.compra,x.unidad,x.merma,x.proveedor,x.costo_compra,x.costo,x.costo_proyectado]),[],...lista.avisos.map(x=>['Observación',x])];}
+function exportarListaCompra(formato='csv'){
+  try{const lista=listaCompraDesdeEntrada(entradaListaCompra()),rows=filasCompraExcel(lista);if(formato==='xlsx')guardarLibroExcel({'Lista Compra':rows},'lista_compra.xlsx');else descargarCSV(rows,'lista_compra.csv');}catch(e){alert(e.message);}
+}
+
+// Todas las lecturas históricas usan el snapshot. No consultan precios vivos.
+function modeloCotizacion(c){
+  const entrada=entradaHistoricaF7(c);
+  if(c.calculo_evento?.resultado)return {entrada,resultado:copiarDatos(c.calculo_evento.resultado)};
+  const personas=Number(c.personas)||0,ingredientes=Number(c.costo_insumos)||0,otros=Number(c.otros_costos)||0;
+  const personal=calcularManoObra(entrada.personal),equipos=calcularEquipos(entrada.equipos),directo=ingredientes+sumaCostos(personal)+sumaCostos(equipos);
+  const total=Number(c.costo_total??directo+otros),venta=Number(c.precio_final??0),utilidad=Number(c.ganancia??venta-total),margen=venta>0?utilidad/venta*100:null;
+  const rentabilidad={venta,utilidad,margen,markup:total>0?utilidad/total*100:null,precioPersona:personas>0?venta/personas:0,sugerido:total*(1+Number(c.margen||0)/100),sugeridoPersona:personas>0?total*(1+Number(c.margen||0)/100)/personas:0,utilidadPersona:personas>0?utilidad/personas:0,estado:margen==null||margen<configRentabilidad.semaforo_amarillo?'rojo':margen<configRentabilidad.semaforo_verde?'amarillo':'verde'};
+  rentabilidad.diferencia=venta-rentabilidad.sugerido;
+  return {entrada,resultado:{produccion:{personas,produccion:personas,seguridad:0},ingredientes,personal,equipos,operativos:[],indirectos:[],transporte:{costo:0},otros,directo,total,costoPersona:personas>0?total/personas:0,rentabilidad}};
+}
+function costosPorCategoria(r){return {ingredientes:Number(r.ingredientes)||0,personal:sumaCostos(r.personal),operativos:sumaCostos(r.operativos),indirectos:sumaCostos(r.indirectos),equipos:sumaCostos(r.equipos),transporte:Number(r.transporte?.costo)||0,otros:Number(r.otros)||0};}
+function filtrarEventos(rows,desde='',hasta='',estado=''){
+  if(desde&&hasta&&desde>hasta)throw new Error('La fecha inicial debe ser anterior o igual a la final.');
+  return rows.filter(c=>(!desde||(c.fecha||'')>=desde)&&(!hasta||(c.fecha||'')<=hasta)&&(!estado||(c.estado||'borrador')===estado));
+}
+function filtrosEventosHTML(prefijo,callback){return `<div class="f8-filtros"><label class="form-group"><span class="form-label">Fecha desde</span><input type="date" id="${prefijo}-desde" onchange="${callback}()"></label><label class="form-group"><span class="form-label">Fecha hasta</span><input type="date" id="${prefijo}-hasta" onchange="${callback}()"></label><label class="form-group"><span class="form-label">Estado</span><select id="${prefijo}-estado" onchange="${callback}()"><option value="">Todos</option>${Object.entries(ESTADOS_EVENTO).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label></div>`;}
+function filtrosEventos(prefijo){return [valorF7(prefijo+'-desde'),valorF7(prefijo+'-hasta'),valorF7(prefijo+'-estado')];}
+function tablaEvento(headers,rows){return '<div class="table-wrap"><table class="data-table"><thead><tr>'+headers.map(x=>'<th>'+escapeF7(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(x=>'<td>'+escapeF7(x??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'+(rows.length?'':'<p class="f7-note">No hay registros para mostrar.</p>');}
+function inicializarEventosUI(){
+  document.getElementById('f8-filtros-hist').innerHTML=filtrosEventosHTML('hist','renderHistorial');
+  document.getElementById('f8-filtros-dash').innerHTML=filtrosEventosHTML('dash','renderDashboard');
+}
+async function loadHistorial(){
+  if(cargandoHistorial)return cargandoHistorial;
+  cargandoHistorial=(async()=>{
+    setSyncStatus('loading','Cargando historial...');
+    try{let todas=[],desde=0;
+      while(true){const {data,error}=await sbClient.from('cotizaciones').select('*').order('created_at',{ascending:false}).order('id',{ascending:false}).range(desde,desde+499);if(error)throw error;if(!Array.isArray(data))throw new Error('Respuesta inválida del historial.');if(!data.length)break;todas.push(...data);desde+=data.length;}
+      cotizaciones=[...new Map(todas.map(c=>[c.id,c])).values()];historialCompleto=true;setSyncStatus('ok','Sincronizado');
+    }catch(e){historialCompleto=false;setSyncStatus('error','Historial incompleto');alert('No se pudo cargar el historial completo: '+e.message);}
+    renderHistorial();renderDashboard();
+  })();try{await cargandoHistorial;}finally{cargandoHistorial=null;}
+}
+function renderHistorial(){
+  const cont=document.getElementById('hist-content');if(!cont)return;
+  try{
+    const rows=filtrarEventos(cotizaciones,...filtrosEventos('hist')).sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
+    cont.innerHTML=(!historialCompleto?'<p class="f7-error">Vista parcial. Pulsá Actualizar para cargar todo el historial.</p>':'')+`<p class="f7-note">${rows.length} cotizaciones · Filtro por fecha del evento</p>`+rows.map(c=>{
+      const {resultado:r}=modeloCotizacion(c),v=r.rentabilidad,id=encodeURIComponent(c.id),estado=ESTADOS_EVENTO[c.estado]||'Borrador';
+      return `<div class="hist-card"><div><div class="hist-cliente">${escapeF7(c.cliente)}</div><p class="hist-meta">${escapeF7(c.fecha||'Sin fecha')} · ${escapeF7(c.menu_nombre||'Sin menú')} · ${r.produccion.personas} personas</p><span class="f8-badge">${estado}</span><span class="f8-badge">Margen real: ${porcentajeVisible(v.margen)}</span>${c.resultado_real?.completo?'<span class="f8-badge">Resultado real completo</span>':''}</div><div><div class="hist-precio">${fmtMoney(v.venta)}</div><div class="hist-ppersona">Utilidad estimada: ${fmtMoney(v.utilidad)}</div><div class="hist-actions"><button class="btn xs" data-evento="${id}" onclick="verDetalleEvento(decodeURIComponent(this.dataset.evento))">Ver detalle</button><button class="btn xs" data-evento="${id}" onclick="openEditCotizacion(decodeURIComponent(this.dataset.evento))">Editar cotización</button><button class="btn xs" data-evento="${id}" onclick="exportarCotizacionExcel(decodeURIComponent(this.dataset.evento))">Excel</button><button class="btn xs danger" data-evento="${id}" onclick="deleteCotizacion(decodeURIComponent(this.dataset.evento))">Eliminar</button></div></div></div>`;
+    }).join('')+(rows.length?'':'<div class="empty">No hay cotizaciones para estos filtros.</div>');
+  }catch(e){cont.innerHTML='<p class="f7-error">'+escapeF7(e.message)+'</p>';}
+}
+function resumenEventoFilas(c,e,r){const v=r.rentabilidad;return [['Cliente',c.cliente||''],['Fecha',c.fecha||''],['Estado',ESTADOS_EVENTO[c.estado]||'Borrador'],['Menú',c.menu_nombre||e.ingredientes.menu_nombre||''],['Personas facturadas',r.produccion.personas],['Personas producción',r.produccion.produccion],['Factor seguridad %',r.produccion.seguridad],...Object.entries(costosPorCategoria(r)).map(([k,n])=>[CATEGORIAS_EVENTO[k],n]),['Costo directo',r.directo],['Costo total',r.total],['Costo por persona',r.costoPersona],['Método',e.metodo==='margen'?'Margen sobre venta':'Markup sobre costo'],['Porcentaje objetivo',Number(e.objetivo)],['Precio sugerido/persona',v.sugeridoPersona],['Precio comercial/persona',v.precioPersona],['Venta total',v.venta],['Utilidad presupuestada',v.utilidad],['Margen real %',v.margen],['Markup real %',v.markup],['Notas',c.notas||'']];}
+function verDetalleEvento(id){
+  const c=cotizaciones.find(x=>String(x.id)===String(id));if(!c)return;detalleEventoId=c.id;
+  const {entrada:e,resultado:r}=modeloCotizacion(c),v=r.rentabilidad;
+  const seccion=(titulo,headers,rows)=>`<details open><summary>${titulo}</summary>${tablaEvento(headers,rows)}</details>`;
+  document.getElementById('evento-titulo').textContent=c.cliente||'Detalle de evento';
+  document.getElementById('evento-resumen').innerHTML=tablaEvento(['Concepto','Valor'],resumenEventoFilas(c,e,r).map(([k,n])=>[k,typeof n==='number'?numeroVisible(n):n]))+`<div class="f7-estado ${['verde','amarillo','rojo'].includes(v.estado)?v.estado:'rojo'}">Margen real: ${porcentajeVisible(v.margen)} · Utilidad: ${fmtMoney(v.utilidad)}</div>`;
+  document.getElementById('evento-desglose').innerHTML=
+    seccion('Menú y producción',['Preparación','Cantidad/porción','Unidad','Costo proyectado/porción'],(e.ingredientes.detalle||[]).map(x=>[x.nombre,numeroVisible(x.cantidad),x.unidad,monedaPrecisa(x.costo_proyectado)]))+
+    seccion('Mano de obra',['Rol','Nombre','Personas','Horas','Tarifa/hora','Subtotal'],r.personal.map(x=>[x.rol||'Manual',x.nombre,x.cantidad,x.horas,fmtMoney(x.tarifa),fmtMoney(x.costo)]))+
+    seccion('Operativos',['Concepto','Cantidad','Unidad','Costo unitario','Subtotal'],r.operativos.map(x=>[x.nombre||'Manual',x.cantidad,x.unidad,fmtMoney(x.costo_unitario),fmtMoney(x.costo)]))+
+    seccion('Indirectos',['Concepto','Método','Valor','Subtotal'],r.indirectos.map(x=>[x.nombre||'Manual',METODO_LABELS[x.metodo],x.valor,fmtMoney(x.costo)]))+
+    seccion('Equipos',['Equipo','Cantidad','Días','Costo/uso','Subtotal'],r.equipos.map(x=>[x.equipo||'Manual',x.cantidad,x.dias,fmtMoney(x.costo_unitario),fmtMoney(x.costo)]))+
+    seccion('Transporte',['Concepto','Valor'],Object.entries(r.transporte).map(([k,n])=>[({modo:'Modalidad',manual:'Monto manual',ida:'Km ida',regreso:'Km regreso',costo_km:'Costo/km',peajes:'Peajes',parqueos:'Parqueos',viaticos:'Viáticos',otros:'Otros',km:'Km totales',kilometraje:'Subtotal kilometraje',costo:'Total transporte'})[k]||k,n]));
+  document.getElementById('evento-estado').innerHTML=Object.entries(ESTADOS_EVENTO).map(([k,n])=>`<option value="${k}">${n}</option>`).join('');ponerF7('evento-estado',c.estado||'borrador');
+  document.getElementById('evento-auditoria').innerHTML=tablaEvento(['Fecha de cambio','Estado','Usuario'],(c.historial_estados||[]).map(x=>[x.fecha?new Date(x.fecha).toLocaleString('es-CR'):'—',ESTADOS_EVENTO[x.estado]||x.estado,x.usuario||'—']));
+  const real=c.resultado_real||{};
+  document.getElementById('evento-reales').innerHTML=Object.entries(CATEGORIAS_EVENTO).map(([k,n])=>`<label class="form-group"><span class="form-label">${n} real (₡)</span><input id="real-${k}" type="number" min="0" step="any" value="${escapeF7(real.costos?.[k]??'')}" oninput="recalcResultadoReal()"></label>`).join('');
+  ponerF7('real-venta',real.venta??r.rentabilidad.venta);ponerF7('real-notas',real.notas||'');document.getElementById('real-completo').checked=real.completo===true;
+  const ro=currentUserRole!=='full';document.querySelectorAll('#evento-reales input,#evento-estado,#real-venta,#real-notas,#real-completo').forEach(el=>el.disabled=ro);
+  recalcResultadoReal();document.getElementById('modal-evento').classList.add('open');
+}
+function leerResultadoReal(){const costos={};Object.keys(CATEGORIAS_EVENTO).forEach(k=>{const raw=valorF7('real-'+k);costos[k]=raw===''?null:numeroCosto(raw,CATEGORIAS_EVENTO[k]+' real');});return {costos,venta:valorF7('real-venta')===''?null:numeroCosto(valorF7('real-venta'),'Venta real'),notas:valorF7('real-notas'),completo:document.getElementById('real-completo').checked};}
+function calcularResultadoReal(real,presupuestado){
+  if(!real)return {disponible:false,completo:false};
+  const faltantes=Object.keys(CATEGORIAS_EVENTO).filter(k=>real.costos?.[k]==null);
+  const parcial=Object.entries(real.costos||{}).filter(([k,n])=>k in CATEGORIAS_EVENTO&&n!=null).reduce((s,[k,n])=>s+numeroCosto(n,CATEGORIAS_EVENTO[k]+' real'),0);
+  const venta=real.venta==null?null:numeroCosto(real.venta,'Venta real');
+  const completo=real.completo===true&&faltantes.length===0&&venta!==null;
+  if(real.completo&&!completo)throw new Error('Para cerrar el resultado, completá todos los costos y la venta real. Ingresá 0 donde no hubo gasto.');
+  return {disponible:true,completo,faltantes,parcial,total:completo?parcial:null,venta,utilidad:completo?venta-parcial:null,margen:completo&&venta>0?(venta-parcial)/venta*100:null,diferencia:completo?parcial-presupuestado.total:null};
+}
+function recalcResultadoReal(){
+  const c=cotizaciones.find(x=>x.id===detalleEventoId);if(!c)return;
+  try{const {resultado:r}=modeloCotizacion(c),real=calcularResultadoReal(leerResultadoReal(),r);
+    document.getElementById('real-comparacion').innerHTML=tablaEvento(['Indicador','Presupuestado','Real'],[['Costo total',fmtMoney(r.total),real.completo?fmtMoney(real.total):'Pendiente (subtotal: '+fmtMoney(real.parcial)+')'],['Venta',fmtMoney(r.rentabilidad.venta),real.venta==null?'Pendiente':fmtMoney(real.venta)],['Utilidad',fmtMoney(r.rentabilidad.utilidad),real.completo?fmtMoney(real.utilidad):'Pendiente'],['Margen',porcentajeVisible(r.rentabilidad.margen),real.completo?porcentajeVisible(real.margen):'Pendiente']])+(real.completo?'<p>Diferencia de costos (real − presupuestado): '+fmtMoney(real.diferencia)+'</p>':'<p class="f7-note">El resultado parcial no se incluye en utilidad real del dashboard.</p>');
+  }catch(e){document.getElementById('real-comparacion').innerHTML='<p class="f7-error">'+escapeF7(e.message)+'</p>';}
+}
+async function actualizarEventoGuardado(id,patch,revision){
+  if(revision==null)throw new Error('Falta la migración de fases 8–11 o el registro está desactualizado. Ejecutá el SQL y recargá el historial.');
+  const {data,error}=await sbClient.from('cotizaciones').update(patch).eq('id',id).eq('revision',revision).select().maybeSingle();
+  if(error)throw error;if(!data)throw new Error('La cotización cambió en otra sesión o no tenés permiso. Recargá el historial antes de guardar.');
+  const i=cotizaciones.findIndex(c=>c.id===data.id);if(i>=0)cotizaciones[i]=data;else cotizaciones.unshift(data);
+  renderHistorial();renderDashboard();return data;
+}
+async function guardarEstadoEvento(){
+  if(!permitirEscrituraF7()||actualizandoEvento)return;const c=cotizaciones.find(x=>x.id===detalleEventoId);if(!c)return;
+  try{const estado=valorF7('evento-estado');if(!(estado in ESTADOS_EVENTO))throw new Error('Estado inválido.');actualizandoEvento=true;await actualizarEventoGuardado(c.id,{estado},c.revision);
+    const campos=[...Object.keys(CATEGORIAS_EVENTO).map(k=>'real-'+k),'real-venta','real-notas'];
+    const pendientes=campos.map(id=>[id,valorF7(id)]),completo=document.getElementById('real-completo').checked;
+    verDetalleEvento(c.id);pendientes.forEach(([id,v])=>ponerF7(id,v));document.getElementById('real-completo').checked=completo;recalcResultadoReal();
+    setSyncStatus('ok','Estado guardado');}catch(e){alert(e.message);}finally{actualizandoEvento=false;}
+}
+async function guardarResultadoReal(){
+  if(!permitirEscrituraF7()||actualizandoEvento)return;const c=cotizaciones.find(x=>x.id===detalleEventoId);if(!c)return;
+  try{const real=leerResultadoReal();calcularResultadoReal(real,modeloCotizacion(c).resultado);actualizandoEvento=true;await actualizarEventoGuardado(c.id,{resultado_real:real},c.revision);verDetalleEvento(c.id);setSyncStatus('ok','Resultado real guardado');}catch(e){alert(e.message);}finally{actualizandoEvento=false;}
+}
+async function deleteCotizacion(id){
+  if(!permitirEscrituraF7()||!confirm('¿Eliminar esta cotización y sus resultados?'))return;
+  const c=cotizaciones.find(x=>String(x.id)===String(id));if(!c)return;
+  try{if(c.revision==null)throw new Error('Actualizá el historial después de aplicar el SQL de fases 8–11.');const {data,error}=await sbClient.from('cotizaciones').delete().eq('id',c.id).eq('revision',c.revision).select('id').maybeSingle();if(error)throw error;if(!data)throw new Error('El registro cambió o no tenés permiso. Recargá el historial.');cotizaciones=cotizaciones.filter(x=>x.id!==c.id);renderHistorial();renderDashboard();}catch(e){alert(e.message);}
+}
+
+// Estimado: cotizaciones activas aún no realizadas. Real: solo eventos
+// realizados con cierre real completo. Nunca se rellena un costo faltante con 0.
+function calcularDashboard(rows){
+  const activos=rows.filter(c=>!['rechazada','cancelada','realizada'].includes(c.estado||'borrador'));
+  const realizados=rows.filter(c=>c.estado==='realizada'),vendidos=rows.filter(c=>['aprobada','confirmada','realizada'].includes(c.estado));
+  const modelos=activos.map(c=>modeloCotizacion(c).resultado);
+  const reales=realizados.map(c=>({c,r:calcularResultadoReal(c.resultado_real,modeloCotizacion(c).resultado)})).filter(x=>x.r.completo);
+  const venta=modelos.reduce((s,r)=>s+r.rentabilidad.venta,0),costo=modelos.reduce((s,r)=>s+r.total,0),personas=modelos.reduce((s,r)=>s+r.produccion.personas,0);
+  const ventaReal=reales.reduce((s,x)=>s+x.r.venta,0),costoReal=reales.reduce((s,x)=>s+x.r.total,0);
+  const ranking=key=>{const mapa=new Map();vendidos.forEach(c=>{const nombre=String(c[key]||'Sin especificar').trim();const id=nombre.toLocaleLowerCase('es');const r=mapa.get(id)||{nombre,eventos:0,personas:0,venta:0};r.eventos++;r.personas+=Number(c.personas)||0;r.venta+=modeloCotizacion(c).resultado.rentabilidad.venta;mapa.set(id,r);});return [...mapa.values()].sort((a,b)=>b.eventos-a.eventos||b.venta-a.venta);};
+  const categorias=Object.fromEntries(Object.keys(CATEGORIAS_EVENTO).map(k=>[k,{estimado:0,real:0}]));
+  modelos.forEach(r=>Object.entries(costosPorCategoria(r)).forEach(([k,n])=>categorias[k].estimado+=n));reales.forEach(({c})=>Object.keys(categorias).forEach(k=>categorias[k].real+=Number(c.resultado_real.costos[k])));
+  const margenes=modelos.map(r=>r.rentabilidad.margen).filter(x=>x!=null&&Number.isFinite(x));
+  return {cotizaciones:rows.length,aprobadas:rows.filter(c=>c.estado==='aprobada').length,realizados:realizados.length,activos:activos.length,ventasEstimadas:venta,costoEstimado:costo,utilidadEstimada:venta-costo,ventasRealizadas:ventaReal,costoReal,utilidadReal:ventaReal-costoReal,cierres:reales.length,pendientes:realizados.length-reales.length,margenPromedio:margenes.length?margenes.reduce((s,n)=>s+n,0)/margenes.length:null,margenPonderado:venta>0?(venta-costo)/venta*100:null,margenReal:ventaReal>0?(ventaReal-costoReal)/ventaReal*100:null,ticketPromedio:activos.length?venta/activos.length:null,precioPersona:personas>0?venta/personas:null,personasAtendidas:realizados.reduce((s,c)=>s+(Number(c.personas)||0),0),menus:ranking('menu_nombre'),clientes:ranking('cliente'),categorias};
+}
+function renderDashboard(){
+  const el=document.getElementById('dashboard-content');if(!el)return;
+  if(!historialCompleto){el.innerHTML='<p class="f7-note">Cargá el historial completo para calcular el dashboard.</p>';return;}
+  try{const rows=filtrarEventos(cotizaciones,...filtrosEventos('dash')),d=calcularDashboard(rows);
+    const metrics=[['Cotizaciones',d.cotizaciones],['Aprobadas',d.aprobadas],['Eventos realizados',d.realizados],['Ventas estimadas',fmtMoney(d.ventasEstimadas)],['Costo estimado',fmtMoney(d.costoEstimado)],['Utilidad estimada',fmtMoney(d.utilidadEstimada)],['Ventas realizadas registradas',fmtMoney(d.ventasRealizadas)],['Costo real registrado',fmtMoney(d.costoReal)],['Utilidad real registrada',fmtMoney(d.utilidadReal)],['Margen promedio estimado',porcentajeVisible(d.margenPromedio)],['Margen ponderado estimado',porcentajeVisible(d.margenPonderado)],['Margen real final',porcentajeVisible(d.margenReal)],['Ticket promedio estimado',d.ticketPromedio==null?'—':fmtMoney(d.ticketPromedio)],['Precio promedio/persona',d.precioPersona==null?'—':fmtMoney(d.precioPersona)],['Personas atendidas',d.personasAtendidas],['Realizados sin cierre real',d.pendientes]];
+    el.innerHTML='<div class="metric-grid">'+metrics.map(([k,v])=>`<div class="metric"><div class="metric-label">${k}</div><div class="metric-value">${v}</div></div>`).join('')+'</div><p class="f7-note">Estimados: borradores, enviadas, aprobadas y confirmadas. Reales: eventos realizados con todos los costos y venta real cerrados ('+d.cierres+'). Ranking: aprobadas, confirmadas y realizadas. Promedio de margen: media simple; margen ponderado: utilidad total / venta total. Filtro por fecha del evento.</p>'+`<h3>Menús más vendidos</h3>${tablaEvento(['Menú','Eventos','Personas','Venta cotizada'],d.menus.map(x=>[x.nombre,x.eventos,x.personas,fmtMoney(x.venta)]))}<h3>Clientes con más eventos</h3>${tablaEvento(['Cliente','Eventos','Personas','Venta cotizada'],d.clientes.map(x=>[x.nombre,x.eventos,x.personas,fmtMoney(x.venta)]))}<h3>Gastos por categoría</h3>${tablaEvento(['Categoría','Estimado activo','Real cerrado'],Object.entries(d.categorias).map(([k,n])=>[CATEGORIAS_EVENTO[k],fmtMoney(n.estimado),fmtMoney(n.real)]))}`;
+  }catch(e){el.innerHTML='<p class="f7-error">'+escapeF7(e.message)+'</p>';}
+}
+
+function descargarCSV(rows,nombre){const csv=rows.map(row=>row.map(v=>{let s=String(v??'');if(typeof v==='string'&&/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download=nombre;a.click();URL.revokeObjectURL(url);}
+function construirHojasCotizacion(c){
+  const {entrada:e,resultado:r}=modeloCotizacion(c),lista=listaCompraDesdeEntrada(e);
+  const hojas={Resumen:[['Concepto','Valor'],...resumenEventoFilas(c,e,r)],Ingredientes:[['Preparación','Cantidad por porción','Unidad','Costo por porción sin inflación','Costo por porción proyectado','Cantidad de producción','Costo de producción'],...(e.ingredientes.detalle||[]).map(x=>[x.nombre,x.cantidad,x.unidad,x.costo,x.costo_proyectado,x.cantidad*r.produccion.produccion,x.costo_proyectado*r.produccion.produccion])],Personal:[['Rol','Nombre','Cantidad','Horas','Tarifa/hora','Subtotal'],...r.personal.map(x=>[x.rol||'Manual',x.nombre||'',Number(x.cantidad),Number(x.horas),Number(x.tarifa),x.costo])],Operativos:[['Concepto','Cantidad','Unidad','Costo unitario','Subtotal'],...r.operativos.map(x=>[x.nombre||'Manual',Number(x.cantidad),x.unidad||'',Number(x.costo_unitario),x.costo])],Indirectos:[['Concepto','Método','Valor','Subtotal'],...r.indirectos.map(x=>[x.nombre||'Manual',METODO_LABELS[x.metodo],Number(x.valor),x.costo])],Equipos:[['Equipo','Cantidad','Días','Costo por uso','Subtotal'],...r.equipos.map(x=>[x.equipo||'Manual',Number(x.cantidad),Number(x.dias),Number(x.costo_unitario),x.costo])],Transporte:[['Concepto','Valor'],...Object.entries(r.transporte).map(([k,v])=>[({modo:'Modalidad',manual:'Monto manual',ida:'Km ida',regreso:'Km regreso',costo_km:'Costo/km',peajes:'Peajes',parqueos:'Parqueos',viaticos:'Viáticos',otros:'Otros',km:'Km totales',kilometraje:'Subtotal kilometraje',costo:'Total transporte'})[k]||k,k==='modo'?v:Number(v)])],'Lista Compra':filasCompraExcel(lista)};
+  if(!e.ingredientes.detalle?.length)hojas.Ingredientes.push(['Sin detalle de ingredientes conservado. Consultar total guardado en Resumen.']);
+  const real=calcularResultadoReal(c.resultado_real,r);
+  hojas['Presupuesto vs Real']=[['Categoría','Presupuestado','Real registrado'],...Object.entries(costosPorCategoria(r)).map(([k,n])=>[CATEGORIAS_EVENTO[k],n,c.resultado_real?.costos?.[k]??null]),['Costo total',r.total,real.total??null],['Venta',r.rentabilidad.venta,real.venta??null],['Utilidad',r.rentabilidad.utilidad,real.utilidad??null],['Margen %',r.rentabilidad.margen,real.margen??null],['Resultado real completo',real.completo?'Sí':'No']];
+  hojas.Estados=[['Fecha','Estado','Usuario'],...(c.historial_estados||[]).map(x=>[x.fecha,ESTADOS_EVENTO[x.estado]||x.estado,x.usuario||''])];return hojas;
+}
+function guardarLibroExcel(hojas,nombre){
+  if(typeof XLSX==='undefined')throw new Error('No se pudo cargar la biblioteca de Excel. Revisá la conexión y recargá la página.');
+  const wb=XLSX.utils.book_new();Object.entries(hojas).forEach(([titulo,rows])=>{
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=Array.from({length:Math.max(...rows.map(x=>x.length),1)},(_,i)=>({wch:Math.min(52,Math.max(16,...rows.map(row=>String(row[i]??'').length+2)))}));
+    Object.keys(ws).filter(k=>!k.startsWith('!')).forEach(k=>{if(ws[k].t==='n')ws[k].z='#,##0.####';});
+    XLSX.utils.book_append_sheet(wb,ws,titulo);
+  });XLSX.writeFile(wb,nombre);return wb;
+}
+function exportarCotizacionExcel(id=null){
+  try{let c=id?cotizaciones.find(x=>String(x.id)===String(id)):null;
+    if(!c){const e=leerCotizacionF7(),r=calcularCostoEvento(e);c=prepararRegistroF7(valorF7('c-cliente')||'Cliente',valorF7('c-fecha'),valorF7('c-notas'),e,r);}
+    guardarLibroExcel(construirHojasCotizacion(c),'cotizacion_'+String(c.cliente||'Cliente').replace(/[^\p{L}\p{N}_-]/gu,'_')+'.xlsx');
+  }catch(e){alert(e.message);}
+}
+
+// Cierra la diferencia heredada entre costo de recetas y costo del evento.
+let totalRecetaEditor=0;
+function itemsEditorReceta(){return [...document.querySelectorAll('#cf-ingredients-container .cf-ing-row')].map(row=>({id:row.querySelector('.item-picker-value')?.value,qty:row.querySelector('.cf-item-qty')?.value??1,unidad:row.querySelector('.cf-item-unidad')?.value||''})).filter(x=>x.id);}
+function updateCFTotal(){
+  const cont=document.getElementById('cf-ingredients-container');if(!cont)return;
+  try{totalRecetaEditor=0;cont.querySelectorAll('.cf-ing-row').forEach(row=>{const id=row.querySelector('.item-picker-value')?.value;const sub=id?costearItem({id,qty:row.querySelector('.cf-item-qty').value,unidad:row.querySelector('.cf-item-unidad')?.value||''}).costo:0;row.querySelector('.item-subtotal').textContent=fmtMoney(sub);totalRecetaEditor+=sub;});document.getElementById('cf-total').textContent=fmtMoney(totalRecetaEditor);updateCFCostoPorUnidad();}catch(e){totalRecetaEditor=null;document.getElementById('cf-total').textContent=e.message;document.getElementById('cf-costo-por-unidad').textContent='Revisá los ingredientes';}
+}
+function updateCFCostoPorUnidad(){const n=Number(valorF7('cf-rend-cantidad'));document.getElementById('cf-costo-por-unidad').textContent=totalRecetaEditor!=null&&n>0?monedaPrecisa(totalRecetaEditor/n)+' / '+valorF7('cf-rend-unidad'):'₡—';}
+async function saveCostoFijo(){
+  if(!permitirEscrituraF7())return;
+  try{
+    const editId=valorF7('cf-edit-id'),nombre=valorF7('cf-nombre').trim();if(!nombre)throw new Error('Ingresá el nombre de la receta.');
+    const rendimiento_cantidad=numeroCosto(valorF7('cf-rend-cantidad'),'Rendimiento de receta',true),items=itemsEditorReceta().map(x=>({...x,qty:numeroCosto(x.qty,'Cantidad de ingrediente',true)}));
+    if(!items.length)throw new Error('Agregá al menos un ingrediente.');
+    const cf={id:editId||nextId('CF',cfData),nombre,items,rendimiento_cantidad,rendimiento_unidad:valorF7('cf-rend-unidad'),p1:items[0]?.id||'',p2:items[1]?.id||'',p3:items[2]?.id||'',p4:items[3]?.id||''};
+    cf.total=costoRecetaActual(cf);cf.costo_por_unidad_rendimiento=cf.total/rendimiento_cantidad;
+    const {error}=await sbClient.from('costos_fijos').upsert(cf,{onConflict:'id'});if(error)throw error;
+    const i=cfData.findIndex(x=>x.id===cf.id);if(i>=0)cfData[i]=cf;else cfData.push(cf);closeModal('cf');recalcCFs();renderMenus();setSyncStatus('ok','Receta guardada');
+  }catch(e){alert('No se guardó la receta: '+e.message);}
+}
+function recalcCFs(){cfData.forEach(cf=>{try{cf.total=costoRecetaActual(cf);cf.costo_por_unidad_rendimiento=Number(cf.rendimiento_cantidad)>0?cf.total/Number(cf.rendimiento_cantidad):null;delete cf.error_costeo;}catch(e){cf.error_costeo=e.message;}});renderCF();}
+function renderCF(){
+  const tbody=document.getElementById('cf-tbody');if(!tbody)return;
+  tbody.innerHTML=cfData.map(cf=>{let total,error='';try{total=costoRecetaActual(cf);}catch(e){error=e.message;}
+    const id=encodeURIComponent(cf.id),unit=Number(cf.rendimiento_cantidad)>0&&!error?total/Number(cf.rendimiento_cantidad):null;
+    if(!error){cf.total=total;cf.costo_por_unidad_rendimiento=unit;}
+    return `<tr><td>${escapeF7(cf.id)}</td><td>${escapeF7(cf.nombre)}</td><td>${(cf.items||[]).map(x=>escapeF7((itemLabel(x.id)||x.id)+' × '+x.qty+(x.unidad?' '+x.unidad:''))).join('<br>')}</td><td>${error?escapeF7(error):fmtMoney(total)}</td><td>${cf.rendimiento_cantidad?escapeF7(cf.rendimiento_cantidad+' '+cf.rendimiento_unidad):'Lote sin rendimiento'}</td><td>${unit==null?'—':monedaPrecisa(unit)+' / '+escapeF7(cf.rendimiento_unidad)}</td><td><button class="btn sm" data-receta="${id}" onclick="editCF(decodeURIComponent(this.dataset.receta))">Editar</button><button class="btn sm danger" data-receta="${id}" onclick="deleteCF(decodeURIComponent(this.dataset.receta))">Eliminar</button></td></tr>`;
+  }).join('')||'<tr><td colspan="7"><div class="empty">Sin recetas aún.</div></td></tr>';
+}
+
+ inicializarEventosUI();
 initAuth();
 </script>
 </body>
 </html>
-
