@@ -552,22 +552,18 @@ textarea{resize:vertical;min-height:60px;}
       <div class="form-group"><label class="form-label">Fecha</label><input type="date" id="cot-edit-fecha"/></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Menú</label><select id="cot-edit-menu"></select></div>
+      <div class="form-group"><label class="form-label">Menú</label><select id="cot-edit-menu" onchange="recalcEdit()"></select></div>
       <div class="form-group"><label class="form-label">Personas</label><input type="number" id="cot-edit-personas" min="1" onchange="recalcEdit()"/></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Parrilleros</label><input type="number" id="cot-edit-parrilleros" min="0" onchange="recalcEdit()"/></div>
-      <div class="form-group"><label class="form-label">Costo por parrillero (₡)</label><input type="number" id="cot-edit-costopar" min="0" onchange="recalcEdit()"/></div>
-    </div>
-    <div class="form-row">
+      <div class="form-group"><label class="form-label">Costo personal total (₡)</label><input type="number" id="cot-edit-personal" min="0" placeholder="0" onchange="recalcEdit()"/></div>
       <div class="form-group"><label class="form-label">Costo equipo (₡)</label><input type="number" id="cot-edit-equipo" min="0" onchange="recalcEdit()"/></div>
-      <div class="form-group"><label class="form-label">Otros costos (₡)</label><input type="number" id="cot-edit-otros" min="0" onchange="recalcEdit()"/></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Margen de ganancia (%)</label><input type="number" id="cot-edit-margen" min="0" max="100" onchange="recalcEdit()"/></div>
-      <div class="form-group"><label class="form-label">Notas</label><input type="text" id="cot-edit-notas" placeholder="Observaciones..."/></div>
+      <div class="form-group"><label class="form-label">Otros costos (₡)</label><input type="number" id="cot-edit-otros" min="0" onchange="recalcEdit()"/></div>
+      <div class="form-group"><label class="form-label">Margen de ganancia (%)</label><input type="number" id="cot-edit-margen" min="0" max="99" onchange="recalcEdit()"/></div>
     </div>
-    <!-- Resumen en tiempo real -->
+    <div class="form-group"><label class="form-label">Notas</label><input type="text" id="cot-edit-notas" placeholder="Observaciones..."/></div>
     <div id="cot-edit-resumen" style="margin-top:8px;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
       <button class="btn" onclick="closeModal('cot-edit')">Cancelar</button>
@@ -1299,7 +1295,7 @@ async function guardarCotizacion(){
   const cliente=document.getElementById('c-cliente').value.trim();
   if(!cliente)return alert('Ingresá el nombre del cliente antes de guardar.');
   const personas=parseInt(document.getElementById('c-personas').value)||0;
-  const npar=parseInt(document.getElementById('c-npar').value)||0;
+  if(personas<=0)return alert('Ingresá una cantidad de personas válida.');
   const parrilleros=getParrillerosList();
   const equiposSel=getEquiposList();
   const costoPersonal=parrilleros.reduce((s,p)=>s+p.costo,0);
@@ -1310,12 +1306,32 @@ async function guardarCotizacion(){
   const menuSel=menuData.find(m=>m.id===menuId);
   const costoPorPersona=menuSel?calcMenuCostoPorPersona(menuSel):0;
   const costoInsumos=costoPorPersona*personas;
-  const costoPersonalTotal=costoPersonal;
-  const costoBase=costoInsumos+costoPersonalTotal+costoEquipo+otros;
+  const costoBase=costoInsumos+costoPersonal+costoEquipo+otros;
   const ganancia=costoBase*(margen/100);
   const precioFinal=costoBase+ganancia;
   const ppp=personas>0?precioFinal/personas:0;
-  const row={cliente,fecha:document.getElementById('c-fecha').value||new Date().toISOString().split('T')[0],menu_id:menuId,menu_nombre:menuSel?menuSel.nombre:'',personas,parrilleros:parrilleros.length,costo_parrillero:costoPersonal,parrilleros_detalle:parrilleros,equipos_seleccionados:equiposSel,costo_insumos:costoInsumos,costo_por_persona_menu:costoPorPersona,margen_inflacion:margenInflacion,costo_equipo:costoEquipo,otros_costos:otros,margen,costo_total:costoBase,ganancia,precio_final:precioFinal,precio_por_persona:ppp,notas:document.getElementById('c-notas').value};
+  const row={
+    cliente,
+    fecha:document.getElementById('c-fecha').value||new Date().toISOString().split('T')[0],
+    menu_id:menuId,
+    menu_nombre:menuSel?menuSel.nombre:'',
+    personas,
+    parrilleros:parrilleros.length,
+    costo_parrillero:costoPersonal,
+    parrilleros_detalle:parrilleros,
+    equipos_seleccionados:equiposSel,
+    costo_insumos:costoInsumos,
+    costo_por_persona_menu:costoPorPersona,
+    margen_inflacion:margenInflacion,
+    costo_equipo:costoEquipo,
+    otros_costos:otros,
+    margen,
+    costo_total:costoBase,
+    ganancia,
+    precio_final:precioFinal,
+    precio_por_persona:ppp,
+    notas:document.getElementById('c-notas').value
+  };
   setSyncStatus('loading','Guardando...');
   const{data,error}=await sbClient.from('cotizaciones').insert(row).select();
   if(error){setSyncStatus('error','Error');alert('Error al guardar: '+error.message);return;}
@@ -1404,25 +1420,25 @@ function openEditCotizacion(id){
   document.getElementById('cot-edit-cliente').value=c.cliente||'';
   document.getElementById('cot-edit-fecha').value=c.fecha||'';
   document.getElementById('cot-edit-personas').value=c.personas||0;
-  document.getElementById('cot-edit-parrilleros').value=c.parrilleros||0;
-  document.getElementById('cot-edit-costopar').value=c.costo_parrillero||0;
+  // Compatibilidad: si tiene parrilleros_detalle usa su suma, si no usa costo_parrillero legacy
+  const costoPersonal=c.parrilleros_detalle&&c.parrilleros_detalle.length>0
+    ?c.parrilleros_detalle.reduce((s,p)=>s+(p.costo||0),0)
+    :(c.costo_parrillero||0);
+  document.getElementById('cot-edit-personal').value=costoPersonal;
   document.getElementById('cot-edit-equipo').value=c.costo_equipo||0;
   document.getElementById('cot-edit-otros').value=c.otros_costos||0;
   document.getElementById('cot-edit-margen').value=c.margen||0;
   document.getElementById('cot-edit-notas').value=c.notas||'';
-  // Populate menu select
   const sel=document.getElementById('cot-edit-menu');
   sel.innerHTML='<option value="">— Sin menú —</option>'+menuData.map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
   sel.value=c.menu_id||'';
-  sel.onchange=recalcEdit;
   recalcEdit();
   document.getElementById('modal-cot-edit').classList.add('open');
 }
 
 function recalcEdit(){
   const personas=parseInt(document.getElementById('cot-edit-personas').value)||0;
-  const npar=parseInt(document.getElementById('cot-edit-parrilleros').value)||0;
-  const costopar=parseFloat(document.getElementById('cot-edit-costopar').value)||0;
+  const costoPersonal=parseFloat(document.getElementById('cot-edit-personal').value)||0;
   const costoEquipo=parseFloat(document.getElementById('cot-edit-equipo').value)||0;
   const otros=parseFloat(document.getElementById('cot-edit-otros').value)||0;
   const margen=parseFloat(document.getElementById('cot-edit-margen').value)||0;
@@ -1430,7 +1446,6 @@ function recalcEdit(){
   const menuSel=menuData.find(m=>m.id===menuId);
   const costoPorPersona=menuSel?calcMenuCostoPorPersona(menuSel):0;
   const costoInsumos=costoPorPersona*personas;
-  const costoPersonal=npar*costopar;
   const costoBase=costoInsumos+costoPersonal+costoEquipo+otros;
   const ganancia=costoBase*(margen/100);
   const precioFinal=costoBase+ganancia;
@@ -1438,7 +1453,7 @@ function recalcEdit(){
   document.getElementById('cot-edit-resumen').innerHTML=`
     <div class="result-box">
       ${menuSel?`<div class="result-row"><span>Insumos (${fmtMoney(costoPorPersona)}/pers. × ${personas}, +${margenInflacion}%)</span><span>${fmtMoney(costoInsumos)}</span></div>`:''}
-      <div class="result-row"><span>Personal (${npar} × ${fmtMoney(costopar)})</span><span>${fmtMoney(costoPersonal)}</span></div>
+      <div class="result-row"><span>Personal</span><span>${fmtMoney(costoPersonal)}</span></div>
       <div class="result-row"><span>Equipo + otros</span><span>${fmtMoney(costoEquipo+otros)}</span></div>
       <div class="result-row total"><span>Costo base</span><span>${fmtMoney(costoBase)}</span></div>
       <div class="result-row ganancia"><span>Ganancia (${margen}%)</span><span>+${fmtMoney(ganancia)}</span></div>
@@ -1452,8 +1467,8 @@ function recalcEdit(){
 async function saveCotizacionEdit(){
   const id=document.getElementById('cot-edit-id').value;if(!id)return;
   const personas=parseInt(document.getElementById('cot-edit-personas').value)||0;
-  const npar=parseInt(document.getElementById('cot-edit-parrilleros').value)||0;
-  const costopar=parseFloat(document.getElementById('cot-edit-costopar').value)||0;
+  if(personas<=0)return alert('Ingresá una cantidad de personas válida.');
+  const costoPersonal=parseFloat(document.getElementById('cot-edit-personal').value)||0;
   const costoEquipo=parseFloat(document.getElementById('cot-edit-equipo').value)||0;
   const otros=parseFloat(document.getElementById('cot-edit-otros').value)||0;
   const margen=parseFloat(document.getElementById('cot-edit-margen').value)||0;
@@ -1461,12 +1476,31 @@ async function saveCotizacionEdit(){
   const menuSel=menuData.find(m=>m.id===menuId);
   const costoPorPersona=menuSel?calcMenuCostoPorPersona(menuSel):0;
   const costoInsumos=costoPorPersona*personas;
-  const costoPersonal=npar*costopar;
   const costoBase=costoInsumos+costoPersonal+costoEquipo+otros;
   const ganancia=costoBase*(margen/100);
   const precioFinal=costoBase+ganancia;
   const ppp=personas>0?precioFinal/personas:0;
-  const row={id,cliente:document.getElementById('cot-edit-cliente').value.trim(),fecha:document.getElementById('cot-edit-fecha').value,menu_id:menuId,menu_nombre:menuSel?menuSel.nombre:'',personas,parrilleros:npar,costo_parrillero:costopar,costo_insumos:costoInsumos,costo_por_persona_menu:costoPorPersona,margen_inflacion:margenInflacion,costo_equipo:costoEquipo,otros_costos:otros,margen,costo_total:costoBase,ganancia,precio_final:precioFinal,precio_por_persona:ppp,notas:document.getElementById('cot-edit-notas').value};
+  const row={
+    id,
+    cliente:document.getElementById('cot-edit-cliente').value.trim(),
+    fecha:document.getElementById('cot-edit-fecha').value,
+    menu_id:menuId,
+    menu_nombre:menuSel?menuSel.nombre:'',
+    personas,
+    parrilleros:0,
+    costo_parrillero:costoPersonal,
+    costo_insumos:costoInsumos,
+    costo_por_persona_menu:costoPorPersona,
+    margen_inflacion:margenInflacion,
+    costo_equipo:costoEquipo,
+    otros_costos:otros,
+    margen,
+    costo_total:costoBase,
+    ganancia,
+    precio_final:precioFinal,
+    precio_por_persona:ppp,
+    notas:document.getElementById('cot-edit-notas').value
+  };
   setSyncStatus('loading','Guardando...');
   const{error}=await sbClient.from('cotizaciones').upsert(row,{onConflict:'id'});
   if(error){setSyncStatus('error','Error');alert('Error: '+error.message);return;}
