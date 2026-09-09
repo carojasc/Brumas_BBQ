@@ -2,14 +2,16 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-oGY0SVMwRbeXtHWOjXVw+XZjR1LWkhsOO6HK+kx6lkk=' https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0/dist/umd/supabase.js; script-src-attr 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src data:; connect-src https://kgecawkyyttfuvnawrrz.supabase.co wss://kgecawkyyttfuvnawrrz.supabase.co; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"/>
+<meta name="referrer" content="no-referrer"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Brumas BBQ — Cotizaciones</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css"/>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.111.0/dist/umd/supabase.js"></script>
 <style>
 :root{--bg:#fff;--bg2:#f6f5f2;--bg3:#f0ede8;--border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);--text:#1a1a18;--text2:#6b6b67;--text3:#9b9b97;--brand:#D85A30;--brand-dark:#993C1D;--brand-light:#FAECE7;--green:#3B6D11;--green-light:#EAF3DE;--radius:8px;--radius-lg:12px;--font:'DM Sans',sans-serif;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -567,7 +569,7 @@ textarea{resize:vertical;min-height:60px;}
     <div class="modal-header"><span class="modal-title" id="usuario-modal-title">Nuevo usuario</span><button class="btn sm" onclick="closeModal('usuario')"><i class="ti ti-x"></i></button></div>
     <input type="hidden" id="usuario-edit-id"/>
     <div class="form-group"><label class="form-label">Correo electrónico</label><input type="email" id="usuario-email" placeholder="correo@ejemplo.com"/></div>
-    <div class="form-group" id="usuario-pass-group"><label class="form-label">Contraseña <span id="usuario-pass-hint" style="color:var(--text2);font-weight:400;">(requerida)</span></label><input type="password" id="usuario-pass" placeholder="Mínimo 8 caracteres"/></div>
+    <div class="form-group" id="usuario-pass-group"><label class="form-label">Contraseña <span id="usuario-pass-hint" style="color:var(--text2);font-weight:400;">(requerida)</span></label><input type="password" autocomplete="new-password" id="usuario-pass" placeholder="Mínimo 8 caracteres"/></div>
     <div class="form-group">
       <label class="form-label">Rol de acceso</label>
       <select id="usuario-rol" style="width:100%;">
@@ -854,7 +856,7 @@ const ADMIN_EMAIL       = 'carlosrojas0402@hotmail.com';
 
 const CONFIGURED = SUPABASE_URL !== 'TU_SUPABASE_URL';
 let sbClient = null;
-if(CONFIGURED) sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if(CONFIGURED&&window.supabase) sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,{auth:{storage:window.sessionStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 
 let invData=[], cfData=[], menuData=[], cotizaciones=[];
 let listasConfig={categorias:[],unidades:[],proveedores:[],equipos:[]};
@@ -879,18 +881,12 @@ const CAT_MAP={carne:'carne',pollo:'pollo',cerdo:'cerdo',condimento:'condimento'
 const TIPOS_COMBO=['General','Entrada','Plato fuerte','Postre','Bebida','Acompañamiento'];
 
 function capCat(c){const cat=listasConfig.categorias.find(x=>x.valor===c);return cat?cat.etiqueta:c;}
-function badgeStyle(c){const cat=listasConfig.categorias.find(x=>x.valor===c);return cat&&cat.color_bg?`background:${cat.color_bg};color:${cat.color_text||'#333'};`:'background:var(--bg2);color:var(--text2);';}
 function setSyncStatus(s,l){const d=document.getElementById('sync-dot'),lb=document.getElementById('sync-label');if(!d)return;d.className='sync-dot '+s;if(lb)lb.textContent=l;}
 function fmtMoney(n){return'₡'+(Math.round(n)||0).toLocaleString('es-CR');}
 
 // ── AUTH ───────────────────────────────────────────────────────────────────
-async function initAuth(){
-  if(!CONFIGURED)return;
-  const{data:{session}}=await sbClient.auth.getSession();
-  if(session)enterApp(session.user);
-}
 async function doLogin(){
-  if(!CONFIGURED){showLoginError('Configurá las credenciales.');return;}
+  if(!CONFIGURED||!sbClient){showLoginError('No se pudo cargar la conexión.');return;}
   const email=document.getElementById('login-email').value.trim();
   const pass=document.getElementById('login-pass').value;
   if(!email||!pass){showLoginError('Completá email y contraseña.');return;}
@@ -899,38 +895,10 @@ async function doLogin(){
   const{data,error}=await sbClient.auth.signInWithPassword({email,password:pass});
   btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Ingresar';
   if(error){showLoginError(error.message==='Invalid login credentials'?'Email o contraseña incorrectos.':error.message);return;}
-  enterApp(data.user);
+  document.getElementById('login-pass').value='';await enterApp(data.user);
 }
 async function doLogout(){await sbClient.auth.signOut();location.reload();}
 function showLoginError(msg){const el=document.getElementById('login-error');el.textContent=msg;el.style.display='block';}
-async function enterApp(user){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('main-app').style.display='flex';
-  document.getElementById('user-email-label').textContent=user.email;
-  if(user.email===ADMIN_EMAIL)document.getElementById('nav-mant').style.display='flex';
-  // Cargar rol del usuario desde la tabla app_usuarios
-  const{data:uData}=await sbClient.from('app_usuarios').select('rol').eq('email',user.email).single();
-  currentUserRole=(uData&&uData.rol==='full')?'full':'readonly';
-  applyRoleRestrictions();
-  await loadAllData();
-}
-function applyRoleRestrictions(){
-  if(currentUserRole!=='readonly')return;
-  // Ocultar todos los botones de acción en modo solo lectura
-  const style=document.createElement('style');
-  style.id='readonly-style';
-  style.textContent=`
-    .btn.primary, .btn.danger, .btn.success { display:none !important; }
-    #nav-mant { display:none !important; }
-  `;
-  document.head.appendChild(style);
-  // Mostrar badge de solo lectura
-  const badge=document.createElement('span');
-  badge.style.cssText='font-size:11px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:99px;margin-left:8px;font-weight:500;';
-  badge.textContent='Solo lectura';
-  document.getElementById('user-email-label').after(badge);
-}
-
 // ── SUPABASE ───────────────────────────────────────────────────────────────
 async function loadAllData(){
   setSyncStatus('loading','Cargando...');
@@ -1019,11 +987,11 @@ function closeModal(type){
 
 // ── INVENTARIO ─────────────────────────────────────────────────────────────
 function populateInvSelects(){
-  document.getElementById('inv-cat').innerHTML=listasConfig.categorias.map(c=>`<option value="${c.valor}">${c.etiqueta}</option>`).join('');
+  document.getElementById('inv-cat').innerHTML=listasConfig.categorias.map(c=>`<option value="${escapeF7(c.valor)}">${escapeF7(c.etiqueta)}</option>`).join('');
   const unSel=document.getElementById('inv-unidad');
-  unSel.innerHTML=listasConfig.unidades.map(u=>`<option value="${u.valor}">${u.etiqueta}</option>`).join('');
+  unSel.innerHTML=listasConfig.unidades.map(u=>`<option value="${escapeF7(u.valor)}">${escapeF7(u.etiqueta)}</option>`).join('');
   document.getElementById('inv-hint-unit').textContent=unSel.value||'unid';
-  document.getElementById('inv-proveedor-sel').innerHTML='<option value="">— Sin proveedor —</option>'+listasConfig.proveedores.map(p=>`<option value="${p.etiqueta}">${p.etiqueta}</option>`).join('');
+  document.getElementById('inv-proveedor-sel').innerHTML='<option value="">— Sin proveedor —</option>'+listasConfig.proveedores.map(p=>`<option value="${escapeF7(p.etiqueta)}">${escapeF7(p.etiqueta)}</option>`).join('');
 }
 
 async function saveInventario(){
@@ -1055,7 +1023,7 @@ function renderInventario(){
   const catSel=document.getElementById('inv-filter-cat');
   if(catSel){
     const currentCat=catSel.value;
-    catSel.innerHTML='<option value="">Todas las categorías</option>'+listasConfig.categorias.map(c=>'<option value="'+c.valor+'">'+c.etiqueta+'</option>').join('');
+    catSel.innerHTML='<option value="">Todas las categorías</option>'+listasConfig.categorias.map(c=>'<option value="'+escapeF7(c.valor)+'">'+escapeF7(c.etiqueta)+'</option>').join('');
     catSel.value=currentCat;
   }
   // Apply current filter if any
@@ -1085,24 +1053,20 @@ function renderInvRows(data, query='', cat=''){
     tbody.innerHTML=`<tr><td colspan="12"><div class="empty"><i class="ti ti-search"></i>${q||cat?'Sin resultados para tu búsqueda. <a href="#" onclick="clearInvSearch();return false;" style="color:var(--brand);">Limpiar filtro</a>':'Sin insumos aún.'}</div></td></tr>`;
     return;
   }
-  function hl(text){
-    if(!q||!text)return text||'';
-    try{return String(text).replace(new RegExp('('+q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&')+')','gi'),'<mark style="background:#FFF3CC;border-radius:2px;padding:0 2px;">$1</mark>');}
-    catch(e){return String(text);}
-  }
+  function hl(text){return resaltarSeguro(text,q);}
   tbody.innerHTML=filtered.map(i=>`<tr>
-      <td style="color:var(--text2);font-size:12px;">${i.id}</td>
+      <td style="color:var(--text2);font-size:12px;">${escapeF7(i.id)}</td>
       <td style="font-weight:500;">${hl(i.nombre)}</td>
-      <td><span class="badge" style="${badgeStyle(i.categoria)}">${capCat(i.categoria)}</span></td>
-      <td style="text-align:right;">${i.cantidad!==null?i.cantidad:'—'}</td>
-      <td><span class="unit-pill">${i.unidad}</span></td>
+      <td><span class="badge" style="${badgeStyle(i.categoria)}">${escapeF7(capCat(i.categoria))}</span></td>
+      <td style="text-align:right;">${escapeF7(i.cantidad!==null?i.cantidad:'—')}</td>
+      <td><span class="unit-pill">${escapeF7(i.unidad)}</span></td>
       <td style="text-align:right;">${fmtMoney(i.costo)}</td>
-      <td style="text-align:right;color:#B45309;">${i.merma>0?i.merma+'%':'—'}</td>
+      <td style="text-align:right;color:#B45309;">${escapeF7(i.merma>0?i.merma+'%':'—')}</td>
       <td style="text-align:right;color:#854F0B;font-weight:500;">${fmtMoney(costoReal(i))}</td>
       <td style="text-align:right;color:#854F0B;font-weight:500;">${fmtMoney(costoConMargen(costoReal(i)))}</td>
       <td>${hl(i.proveedor||'—')}</td>
-      <td style="color:var(--text2);font-size:12px;">${i.obs||'—'}</td>
-      <td><div style="display:flex;gap:4px;"><button class="btn sm" onclick="editInv('${i.id}')"><i class="ti ti-edit"></i></button><button class="btn sm danger" onclick="deleteInv('${i.id}')"><i class="ti ti-trash"></i></button></div></td>
+      <td style="color:var(--text2);font-size:12px;">${escapeF7(i.obs||'—')}</td>
+      <td><div style="display:flex;gap:4px;"><button class="btn sm" onclick="editInv(decodeURIComponent('${parametroSeguro(i.id)}'))"><i class="ti ti-edit"></i></button><button class="btn sm danger" onclick="deleteInv(decodeURIComponent('${parametroSeguro(i.id)}'))"><i class="ti ti-trash"></i></button></div></td>
     </tr>`).join('');
 }
 
@@ -1173,15 +1137,15 @@ function addCFIngredient(value='',qty=1,unidad=''){
   row.style.cssText='display:grid;grid-template-columns:minmax(140px,1fr) 70px 100px 85px auto;gap:6px;margin-bottom:6px;align-items:center;';
   row.innerHTML=`
     <div class="item-picker" id="${pid}">
-      <input type="text" class="item-picker-input" placeholder="Buscar ingrediente..." readonly onclick="togglePicker('${pid}')" autocomplete="off"/>
+      <input type="text" class="item-picker-input" placeholder="Buscar ingrediente..." readonly onclick="togglePicker(decodeURIComponent('${parametroSeguro(pid)}'))" autocomplete="off"/>
       <input type="hidden" class="item-picker-value"/>
       <div class="item-picker-dropdown" id="${pid}-dd">
-        <div class="item-picker-search"><input type="text" placeholder="Escribí para buscar..." oninput="filterCFPicker('${pid}',this.value)" onclick="event.stopPropagation()"/></div>
+        <div class="item-picker-search"><input type="text" placeholder="Escribí para buscar..." oninput="filterCFPicker(decodeURIComponent('${parametroSeguro(pid)}'),this.value)" onclick="event.stopPropagation()"/></div>
         <div class="item-picker-options" id="${pid}-opts"></div>
-        <div class="item-picker-clear" onclick="clearCFPicker('${pid}')">✕ Limpiar</div>
+        <div class="item-picker-clear" onclick="clearCFPicker(decodeURIComponent('${parametroSeguro(pid)}'))">✕ Limpiar</div>
       </div>
     </div>
-    <input type="number" class="cf-item-qty" value="${qty}" min="0.001" step="0.001" style="text-align:right;" onchange="updateCFTotal()"/>
+    <input type="number" class="cf-item-qty" value="${escapeF7(qty)}" min="0.001" step="0.001" style="text-align:right;" onchange="updateCFTotal()"/>
     <select class="cf-item-unidad" aria-label="Unidad del ingrediente" onchange="updateCFTotal()">${[['','Unidad original / lote'],['kg','kg'],['g','g'],['L','L'],['ml','ml'],['unidades','unidades'],['porciones','porciones']].map(([k,v])=>`<option value="${k}" ${k===unidad?'selected':''}>${v}</option>`).join('')}</select>
     <span class="item-subtotal" style="font-size:11px;color:var(--green);text-align:right;padding:8px 4px;white-space:nowrap;">₡0</span>
     <button class="btn xs danger" onclick="this.closest('.cf-ing-row').remove();updateCFTotal()"><i class="ti ti-x"></i></button>`;
@@ -1206,10 +1170,10 @@ function renderCFPickerOptions(pid,query){
   const picker=document.getElementById(pid);
   const currentVal=picker?picker.querySelector('.item-picker-value').value:'';
   opts.innerHTML=filtered.map(i=>`
-    <div class="item-picker-option${i.id===currentVal?' selected':''}" onclick="setCFPickerValue('${pid}','${i.id}');event.stopPropagation()">
-      <span class="opt-name">${i.label}</span>
-      <span class="opt-badge">${i.badge}</span>
-      <span class="opt-price">${i.detail}</span>
+    <div class="item-picker-option${i.id===currentVal?' selected':''}" onclick="setCFPickerValue(decodeURIComponent('${parametroSeguro(pid)}'),decodeURIComponent('${parametroSeguro(i.id)}'));event.stopPropagation()">
+      <span class="opt-name">${escapeF7(i.label)}</span>
+      <span class="opt-badge">${escapeF7(i.badge)}</span>
+      <span class="opt-price">${escapeF7(i.detail)}</span>
     </div>`).join('');
 }
 
@@ -1259,7 +1223,7 @@ function editCF(id){
 async function deleteCF(id){if(!permitirEscrituraF7())return;if(!confirm('¿Eliminar?'))return;cfData=cfData.filter(i=>i.id!==id);renderCF();await dbDelete('costos_fijos',id);}
 
 // ── MENÚ CON COMBOS ────────────────────────────────────────────────────────
-function itemsOpts(){return'<option value="">— Ninguno —</option>'+[...invData.map(i=>({id:i.id,label:`${i.nombre} (${i.unidad}) — ${fmtMoney(i.costo)}`})),...cfData.map(c=>({id:c.id,label:`${c.nombre} [receta] — ${fmtMoney(c.total)}`}))].map(i=>`<option value="${i.id}">${i.label}</option>`).join('');}
+function itemsOpts(){return'<option value="">— Ninguno —</option>'+[...invData.map(i=>({id:i.id,label:`${i.nombre} (${i.unidad}) — ${fmtMoney(i.costo)}`})),...cfData.map(c=>({id:c.id,label:`${c.nombre} [receta] — ${fmtMoney(c.total)}`}))].map(i=>`<option value="${escapeF7(i.id)}">${escapeF7(i.label)}</option>`).join('');}
 
 let comboCounter=0;
 function addComboBlock(combo=null){
@@ -1270,14 +1234,14 @@ function addComboBlock(combo=null){
   div.innerHTML=`
     <div class="combo-header">
       <div style="display:flex;gap:8px;align-items:center;flex:1;">
-        <input type="text" placeholder="Nombre del combo (ej. Hamburguesa Clásica)" value="${combo?combo.nombre||'':''}" style="flex:1;" class="combo-nombre" oninput="recalcMenuTotal()"/>
+        <input type="text" placeholder="Nombre del combo (ej. Hamburguesa Clásica)" value="${escapeF7(combo?combo.nombre||'':'')}" style="flex:1;" class="combo-nombre" oninput="recalcMenuTotal()"/>
         <select class="combo-tipo" style="width:140px;">${tipoOpts}</select>
       </div>
-      <button class="btn xs danger" style="margin-left:8px;" onclick="document.getElementById('${cid}').remove();recalcMenuTotal()"><i class="ti ti-trash"></i></button>
+      <button class="btn xs danger" style="margin-left:8px;" onclick="document.getElementById(decodeURIComponent('${parametroSeguro(cid)}')).remove();recalcMenuTotal()"><i class="ti ti-trash"></i></button>
     </div>
     <div class="combo-col-header"><span>Ítem</span><span>Cant./persona</span><span>Unidad</span><span>Subtotal</span><span></span></div>
     <div class="combo-items"></div>
-    <button class="add-item-btn" onclick="addComboItem('${cid}')"><i class="ti ti-plus" style="font-size:12px;"></i> Agregar ítem</button>
+    <button class="add-item-btn" onclick="addComboItem(decodeURIComponent('${parametroSeguro(cid)}'))"><i class="ti ti-plus" style="font-size:12px;"></i> Agregar ítem</button>
     <div style="font-size:12px;color:var(--green);margin-top:6px;text-align:right;font-weight:500;" class="combo-subtotal">Costo/persona: ₡0</div>`;
   cont.appendChild(div);
   const items=combo&&combo.items?combo.items:[{id:'',qty:1,unidad:''}];
@@ -1300,15 +1264,15 @@ function addComboItem(cid,value='',qty=1,unidad=''){
   const unidadOpts='<option value="">Unidad original / lote completo</option>'+['kg','g','ml','L','unidades','porciones'].map(u=>`<option value="${u}"${u===unidad?' selected':''}>${u}</option>`).join('');
   row.innerHTML=`
     <div class="item-picker" id="${pid}">
-      <input type="text" class="item-picker-input" placeholder="Buscar ítem..." readonly onclick="togglePicker('${pid}')" autocomplete="off"/>
+      <input type="text" class="item-picker-input" placeholder="Buscar ítem..." readonly onclick="togglePicker(decodeURIComponent('${parametroSeguro(pid)}'))" autocomplete="off"/>
       <input type="hidden" class="item-picker-value"/>
       <div class="item-picker-dropdown" id="${pid}-dd">
-        <div class="item-picker-search"><input type="text" placeholder="Escribí para buscar..." oninput="filterPicker('${pid}',this.value)" onclick="event.stopPropagation()"/></div>
+        <div class="item-picker-search"><input type="text" placeholder="Escribí para buscar..." oninput="filterPicker(decodeURIComponent('${parametroSeguro(pid)}'),this.value)" onclick="event.stopPropagation()"/></div>
         <div class="item-picker-options" id="${pid}-opts"></div>
-        <div class="item-picker-clear" onclick="clearPicker('${pid}')">✕ Limpiar selección</div>
+        <div class="item-picker-clear" onclick="clearPicker(decodeURIComponent('${parametroSeguro(pid)}'))">✕ Limpiar selección</div>
       </div>
     </div>
-    <input type="number" class="item-qty" value="${qty}" min="0.001" step="0.001" style="text-align:right;" onchange="recalcMenuTotal()"/>
+    <input type="number" class="item-qty" value="${escapeF7(qty)}" min="0.001" step="0.001" style="text-align:right;" onchange="recalcMenuTotal()"/>
     <select class="item-unidad" style="font-size:12px;" onchange="recalcMenuTotal()">${unidadOpts}</select>
     <span class="item-subtotal">₡0</span>
     <button class="btn xs danger" onclick="this.closest('.combo-item-row').remove();recalcMenuTotal()"><i class="ti ti-x"></i></button>`;
@@ -1323,14 +1287,14 @@ function renderPickerOptions(pid, query){
   const all=allItemsList();
   const q=query.toLowerCase().trim();
   const filtered=q?all.filter(i=>i.label.toLowerCase().includes(q)):all;
-  if(!filtered.length){opts.innerHTML=`<div class="item-picker-empty">Sin resultados para "${query}"</div>`;return;}
+  if(!filtered.length){opts.innerHTML=`<div class="item-picker-empty">Sin resultados para "${escapeF7(query)}"</div>`;return;}
   const picker=document.getElementById(pid);
   const currentVal=picker.querySelector('.item-picker-value').value;
   opts.innerHTML=filtered.map(i=>`
-    <div class="item-picker-option${i.id===currentVal?' selected':''}" onclick="setPickerValue('${pid}','${i.id}');event.stopPropagation()">
-      <span class="opt-name">${i.label}</span>
-      <span class="opt-badge">${i.badge}</span>
-      <span class="opt-price">${i.detail}</span>
+    <div class="item-picker-option${i.id===currentVal?' selected':''}" onclick="setPickerValue(decodeURIComponent('${parametroSeguro(pid)}'),decodeURIComponent('${parametroSeguro(i.id)}'));event.stopPropagation()">
+      <span class="opt-name">${escapeF7(i.label)}</span>
+      <span class="opt-badge">${escapeF7(i.badge)}</span>
+      <span class="opt-price">${escapeF7(i.detail)}</span>
     </div>`).join('');
 }
 
@@ -1413,19 +1377,19 @@ function renderMenus(){
     let costoTotal=0;try{costoTotal=calcMenuCostoPorPersona(mn);}catch(e){costoTotal=null;}
     const combosHtml=(mn.combos||[]).map(combo=>`
       <div style="margin-bottom:8px;">
-        <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:3px;">${combo.nombre||'Sin nombre'} <span class="combo-pill">${combo.tipo||'General'}</span></div>
-        <div>${(combo.items||[]).map(item=>{const id=typeof item==='object'?item.id:item;const qty=typeof item==='object'?(item.qty||1):1;const label=itemLabel(id)||id;return`<span class="menu-tag">${qty>1?qty+'× ':''  }${label}</span>`;}).join('')}</div>
+        <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:3px;">${escapeF7(combo.nombre||'Sin nombre')} <span class="combo-pill">${escapeF7(combo.tipo||'General')}</span></div>
+        <div>${(combo.items||[]).map(item=>{const id=typeof item==='object'?item.id:item;const qty=typeof item==='object'?(item.qty||1):1;const label=itemLabel(id)||id;return`<span class="menu-tag">${qty>1?qty+'× ':''  }${escapeF7(label)}</span>`;}).join('')}</div>
       </div>`).join('');
     return`<div class="menu-card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
         <div>
-          <div style="font-weight:500;font-size:15px;">${mn.nombre} <span style="color:var(--text2);font-size:12px;">${mn.id}</span></div>
-          ${mn.descripcion?`<div style="font-size:12px;color:var(--text2);margin-top:2px;">${mn.descripcion}</div>`:''}
+          <div style="font-weight:500;font-size:15px;">${escapeF7(mn.nombre)} <span style="color:var(--text2);font-size:12px;">${escapeF7(mn.id)}</span></div>
+          ${mn.descripcion?`<div style="font-size:12px;color:var(--text2);margin-top:2px;">${escapeF7(mn.descripcion)}</div>`:''}
           <div style="font-size:12px;color:#854F0B;margin-top:4px;">💰 Costo/persona (+${margenInflacion}% inflación): ${(costoTotal===null?'Revisar unidades/rendimiento':fmtMoney(costoTotal))}</div>
         </div>
         <div style="display:flex;gap:4px;">
-          <button class="btn sm" onclick="editMenu('${mn.id}')"><i class="ti ti-edit"></i></button>
-          <button class="btn sm danger" onclick="deleteMenu('${mn.id}')"><i class="ti ti-trash"></i></button>
+          <button class="btn sm" onclick="editMenu(decodeURIComponent('${parametroSeguro(mn.id)}'))"><i class="ti ti-edit"></i></button>
+          <button class="btn sm danger" onclick="deleteMenu(decodeURIComponent('${parametroSeguro(mn.id)}'))"><i class="ti ti-trash"></i></button>
         </div>
       </div>
       ${combosHtml||'<div style="font-size:12px;color:var(--text3);">Sin combos</div>'}
@@ -1451,7 +1415,7 @@ async function deleteMenu(id){if(!permitirEscrituraF7())return;if(!confirm('¿El
 // ── HISTORIAL ──────────────────────────────────────────────────────────────
 // ── MANTENIMIENTO ──────────────────────────────────────────────────────────
 // ── USUARIOS ───────────────────────────────────────────────────────────────
-async function loadUsuarios(){
+async function loadUsuarios(){if(!permitirAdminSeguro())return;
   const tbody=document.getElementById('usuarios-tbody');if(!tbody)return;
   tbody.innerHTML=`<tr><td colspan="4"><div class="empty">Cargando...</div></td></tr>`;
   const{data,error}=await sbClient.from('app_usuarios').select('*').order('created_at');
@@ -1461,18 +1425,18 @@ async function loadUsuarios(){
   }
   tbody.innerHTML=data.map(u=>`
     <tr>
-      <td>${u.email}${u.email===ADMIN_EMAIL?'<span style="font-size:10px;background:#DCFCE7;color:#166534;padding:1px 7px;border-radius:99px;margin-left:8px;">Admin</span>':''}</td>
+      <td>${escapeF7(u.email)}${u.email===ADMIN_EMAIL?'<span style="font-size:10px;background:#DCFCE7;color:#166534;padding:1px 7px;border-radius:99px;margin-left:8px;">Admin</span>':''}</td>
       <td><span style="font-size:12px;padding:2px 10px;border-radius:99px;background:${u.rol==='readonly'?'#FEF3C7':'#DCFCE7'};color:${u.rol==='readonly'?'#92400E':'#166534'};">${u.rol==='readonly'?'👁️ Solo lectura':'🔓 Completo'}</span></td>
       <td style="color:var(--text2);font-size:12px;">${u.created_at?new Date(u.created_at).toLocaleDateString('es-CR'):'-'}</td>
       <td style="text-align:right;">
         ${u.email!==ADMIN_EMAIL?`
-          <button class="btn xs" onclick="openModalUsuario('${u.id}','${u.email}','${u.rol}')"><i class="ti ti-pencil"></i></button>
-          <button class="btn xs danger" onclick="deleteUsuario('${u.id}','${u.email}')"><i class="ti ti-trash"></i></button>
+          <button class="btn xs" onclick="openModalUsuario(decodeURIComponent('${parametroSeguro(u.id)}'),decodeURIComponent('${parametroSeguro(u.email)}'),decodeURIComponent('${parametroSeguro(u.rol)}'))"><i class="ti ti-pencil"></i></button>
+          <button class="btn xs danger" onclick="deleteUsuario(decodeURIComponent('${parametroSeguro(u.id)}'),decodeURIComponent('${parametroSeguro(u.email)}'))"><i class="ti ti-trash"></i></button>
         `:''}
       </td>
     </tr>`).join('');
 }
-function openModalUsuario(id='',email='',rol='full'){
+function openModalUsuario(id='',email='',rol='full'){if(!permitirAdminSeguro())return;
   document.getElementById('usuario-edit-id').value=id;
   document.getElementById('usuario-email').value=email;
   document.getElementById('usuario-email').disabled=!!id;
@@ -1484,65 +1448,16 @@ function openModalUsuario(id='',email='',rol='full'){
   document.getElementById('usuario-error').style.display='none';
   openModal('usuario');
 }
-async function saveUsuario(){if(!permitirEscrituraF7())return;
-  const id=document.getElementById('usuario-edit-id').value;
-  const email=document.getElementById('usuario-email').value.trim();
-  const pass=document.getElementById('usuario-pass').value;
-  const rol=document.getElementById('usuario-rol').value;
-  const errEl=document.getElementById('usuario-error');
-  errEl.style.display='none';
-  if(!email){errEl.textContent='Ingresá un email.';errEl.style.display='block';return;}
-  if(!id&&!pass){errEl.textContent='La contraseña es requerida para nuevos usuarios.';errEl.style.display='block';return;}
-  const btn=document.getElementById('usuario-save-btn');
-  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Guardando...';
-  try{
-    if(!id){
-      // Crear usuario con signUp (compatible con anon key)
-      const{data:authData,error:authError}=await sbClient.auth.signUp({email,password:pass});
-      if(authError)throw new Error(authError.message);
-      const uid=authData?.user?.id;
-      if(!uid)throw new Error('No se pudo obtener el ID del usuario creado.');
-      // Confirmar email automáticamente
-      try{await sbClient.rpc('confirm_user_email',{user_email:email});}catch(e){}
-      // Guardar rol en app_usuarios
-      const{error:insErr}=await sbClient.from('app_usuarios').insert({id:uid,email,rol});
-      if(insErr)throw new Error(insErr.message);
-    } else {
-      // Actualizar rol
-      const{error:updErr}=await sbClient.from('app_usuarios').update({rol}).eq('id',id);
-      if(updErr)throw new Error(updErr.message);
-      // Cambiar contraseña si se ingresó una nueva
-      if(pass){
-        const{error:passErr}=await sbClient.rpc('update_user_password',{user_id:id,new_password:pass});
-        if(passErr)throw new Error('Rol actualizado pero error al cambiar contraseña: '+passErr.message);
-      }
-    }
-    closeModal('usuario');
-    loadUsuarios();
-  } catch(e){
-    errEl.textContent=e.message||'Error al guardar usuario.';
-    errEl.style.display='block';
-  }
-  btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar';
-}
-async function deleteUsuario(id,email){if(!permitirEscrituraF7())return;
-  if(!confirm(`¿Eliminar usuario ${email}? Esta acción no se puede deshacer.`))return;
-  // Solo eliminar de app_usuarios — el usuario de Auth queda inactivo sin acceso a datos
-  const{error}=await sbClient.from('app_usuarios').delete().eq('id',id);
-  if(error){alert('Error al eliminar: '+error.message);return;}
-  loadUsuarios();
-}
-
 // ── ROLES DE PERSONAL ──────────────────────────────────────────────────────
 function renderRoles(){
   const tbody=document.getElementById('roles-tbody');if(!tbody)return;
   if(!rolesPersonal.length){tbody.innerHTML=`<tr><td colspan="3"><div class="empty">Sin roles configurados.</div></td></tr>`;return;}
   tbody.innerHTML=rolesPersonal.map(r=>`<tr>
-    <td style="font-weight:500;">${r.nombre}</td>
+    <td style="font-weight:500;">${escapeF7(r.nombre)}</td>
     <td style="text-align:right;">${fmtMoney(r.tarifa_hora||0)}/hr</td>
     <td style="text-align:right;">
-      <button class="btn sm" onclick="openModalRol('${r.id}')"><i class="ti ti-edit"></i></button>
-      <button class="btn sm danger" onclick="deleteRol('${r.id}')"><i class="ti ti-trash"></i></button>
+      <button class="btn sm" onclick="openModalRol(decodeURIComponent('${parametroSeguro(r.id)}'))"><i class="ti ti-edit"></i></button>
+      <button class="btn sm danger" onclick="deleteRol(decodeURIComponent('${parametroSeguro(r.id)}'))"><i class="ti ti-trash"></i></button>
     </td></tr>`).join('');
 }
 function openModalRol(id=''){
@@ -1577,13 +1492,13 @@ function renderOperativos(){
   const tbody=document.getElementById('operativos-tbody');if(!tbody)return;
   if(!costosOperativos.length){tbody.innerHTML=`<tr><td colspan="5"><div class="empty">Sin costos operativos.</div></td></tr>`;return;}
   tbody.innerHTML=costosOperativos.map(o=>`<tr>
-    <td style="font-weight:500;">${o.nombre}</td>
-    <td style="color:var(--text2);">${o.categoria||'—'}</td>
-    <td style="color:var(--text2);">${o.unidad||'—'}</td>
+    <td style="font-weight:500;">${escapeF7(o.nombre)}</td>
+    <td style="color:var(--text2);">${escapeF7(o.categoria||'—')}</td>
+    <td style="color:var(--text2);">${escapeF7(o.unidad||'—')}</td>
     <td style="text-align:right;">${fmtMoney(o.costo_unitario||0)}</td>
     <td style="text-align:right;">
-      <button class="btn sm" onclick="openModalOperativo('${o.id}')"><i class="ti ti-edit"></i></button>
-      <button class="btn sm danger" onclick="deleteOperativo('${o.id}')"><i class="ti ti-trash"></i></button>
+      <button class="btn sm" onclick="openModalOperativo(decodeURIComponent('${parametroSeguro(o.id)}'))"><i class="ti ti-edit"></i></button>
+      <button class="btn sm danger" onclick="deleteOperativo(decodeURIComponent('${parametroSeguro(o.id)}'))"><i class="ti ti-trash"></i></button>
     </td></tr>`).join('');
 }
 function openModalOperativo(id=''){
@@ -1621,12 +1536,12 @@ function renderIndirectos(){
   const tbody=document.getElementById('indirectos-tbody');if(!tbody)return;
   if(!costosIndirectos.length){tbody.innerHTML=`<tr><td colspan="4"><div class="empty">Sin costos indirectos.</div></td></tr>`;return;}
   tbody.innerHTML=costosIndirectos.map(i=>`<tr>
-    <td style="font-weight:500;">${i.nombre}</td>
-    <td style="color:var(--text2);font-size:12px;">${METODO_LABELS[i.metodo]||i.metodo}</td>
+    <td style="font-weight:500;">${escapeF7(i.nombre)}</td>
+    <td style="color:var(--text2);font-size:12px;">${escapeF7(METODO_LABELS[i.metodo]||i.metodo)}</td>
     <td style="text-align:right;">${i.metodo==='manual'?'—':fmtMoney(i.valor||0)+(i.metodo.startsWith('pct')?'%':'')}</td>
     <td style="text-align:right;">
-      <button class="btn sm" onclick="openModalIndirecto('${i.id}')"><i class="ti ti-edit"></i></button>
-      <button class="btn sm danger" onclick="deleteIndirecto('${i.id}')"><i class="ti ti-trash"></i></button>
+      <button class="btn sm" onclick="openModalIndirecto(decodeURIComponent('${parametroSeguro(i.id)}'))"><i class="ti ti-edit"></i></button>
+      <button class="btn sm danger" onclick="deleteIndirecto(decodeURIComponent('${parametroSeguro(i.id)}'))"><i class="ti ti-trash"></i></button>
     </td></tr>`).join('');
 }
 function openModalIndirecto(id=''){
@@ -1721,14 +1636,14 @@ function renderLista(tipo,containerId){
   cont.innerHTML=items.map(item=>`
     <div class="lista-item">
       <div class="lista-item-info">
-        ${item.color_bg?`<span class="color-dot" style="background:${item.color_bg};border:1px solid ${item.color_text||'#ccc'};"></span>`:''}
-        <span style="font-weight:500;">${item.etiqueta}</span>
-        <span style="color:var(--text2);font-size:12px;">${item.valor}</span>
-        ${item.color_bg?`<span class="badge" style="background:${item.color_bg};color:${item.color_text||'#333'};">${item.etiqueta}</span>`:''}
+        ${item.color_bg?`<span class="color-dot" style="background:${colorSeguro(item.color_bg,'#eeeeee')};border:1px solid ${colorSeguro(item.color_text,'#cccccc')};"></span>`:''}
+        <span style="font-weight:500;">${escapeF7(item.etiqueta)}</span>
+        <span style="color:var(--text2);font-size:12px;">${escapeF7(item.valor)}</span>
+        ${item.color_bg?`<span class="badge" style="background:${colorSeguro(item.color_bg,'#eeeeee')};color:${colorSeguro(item.color_text)};">${escapeF7(item.etiqueta)}</span>`:''}
       </div>
       <div style="display:flex;gap:4px;">
-        <button class="btn sm" onclick="editListaItem('${item.id}')"><i class="ti ti-edit"></i></button>
-        <button class="btn sm danger" onclick="deleteListaItem('${item.id}','${tipo}')"><i class="ti ti-trash"></i></button>
+        <button class="btn sm" onclick="editListaItem(decodeURIComponent('${parametroSeguro(item.id)}'))"><i class="ti ti-edit"></i></button>
+        <button class="btn sm danger" onclick="deleteListaItem(decodeURIComponent('${parametroSeguro(item.id)}'),decodeURIComponent('${parametroSeguro(tipo)}'))"><i class="ti ti-trash"></i></button>
       </div>
     </div>`).join('');
 }
@@ -1815,9 +1730,6 @@ function switchImportTab(tab){importMode=tab;document.getElementById('panel-xlsx
 function dzDrag(e,zoneId,on){e.preventDefault();document.getElementById(zoneId).classList.toggle('dragover',on);}
 function dzDropCsv(e){e.preventDefault();document.getElementById('drop-zone-csv').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)handleFile(f);}
 function dzDropXlsx(e){e.preventDefault();document.getElementById('drop-zone-xlsx').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)handleXlsx(f);}
-function handleFile(file){if(!file)return;if(!file.name.match(/\.(csv|txt)$/i)){setImportStatus('err','Solo .csv o .txt');return;}const reader=new FileReader();reader.onload=e=>parseCSV(e.target.result);reader.readAsText(file,'UTF-8');}
-function handleXlsx(file){if(!file)return;if(!file.name.match(/\.(xlsx|xls)$/i)){setImportStatus('err','Solo .xlsx o .xls');return;}const reader=new FileReader();reader.onload=e=>{try{parseXlsxWorkbook(XLSX.read(new Uint8Array(e.target.result),{type:'array'}));}catch(err){setImportStatus('err','No se pudo leer.');}};reader.readAsArrayBuffer(file);}
-function sheetToRows(ws){return XLSX.utils.sheet_to_json(ws,{header:1,defval:''}).filter(r=>r.some(c=>String(c).trim()!==''));}
 function parseXlsxWorkbook(wb){
   xlsxFullData={inv:[],cf:[]};const norm=s=>String(s).toLowerCase().replace(/[^a-záéíóúñ0-9]/gi,'');let total=0;
   const invS=wb.Sheets['Inventario_Productos']||wb.Sheets[wb.SheetNames[0]];
@@ -1825,10 +1737,10 @@ function parseXlsxWorkbook(wb){
   if(total===0){setImportStatus('err','Sin datos.');xlsxFullData=null;return;}
   setImportStatus('ok',`${xlsxFullData.inv.length} insumo${xlsxFullData.inv.length!==1?'s':''} encontrados.`);
   const prev=xlsxFullData.inv.slice(0,5);
-  document.getElementById('import-preview-area').innerHTML=prev.length?`<div style="font-size:11px;color:var(--text2);margin:10px 0 4px;">Vista previa:</div><div class="preview-wrap"><table style="font-size:12px;width:100%"><thead><tr><th style="padding:6px 10px;background:var(--bg2);">Nombre</th><th style="padding:6px 10px;background:var(--bg2);">Cat.</th><th style="padding:6px 10px;background:var(--bg2);">Unidad</th><th style="padding:6px 10px;background:var(--bg2);">Costo</th></tr></thead><tbody>${prev.map(r=>`<tr><td style="padding:5px 10px;">${r.nombre}</td><td style="padding:5px 10px;">${capCat(r.categoria)}</td><td style="padding:5px 10px;">${r.unidad}</td><td style="padding:5px 10px;text-align:right;">${fmtMoney(r.costo)}</td></tr>`).join('')}</tbody></table></div>`:'';
+  document.getElementById('import-preview-area').innerHTML=prev.length?`<div style="font-size:11px;color:var(--text2);margin:10px 0 4px;">Vista previa:</div><div class="preview-wrap"><table style="font-size:12px;width:100%"><thead><tr><th style="padding:6px 10px;background:var(--bg2);">Nombre</th><th style="padding:6px 10px;background:var(--bg2);">Cat.</th><th style="padding:6px 10px;background:var(--bg2);">Unidad</th><th style="padding:6px 10px;background:var(--bg2);">Costo</th></tr></thead><tbody>${prev.map(r=>`<tr><td style="padding:5px 10px;">${escapeF7(r.nombre)}</td><td style="padding:5px 10px;">${escapeF7(capCat(r.categoria))}</td><td style="padding:5px 10px;">${escapeF7(r.unidad)}</td><td style="padding:5px 10px;text-align:right;">${fmtMoney(r.costo)}</td></tr>`).join('')}</tbody></table></div>`:'';
   document.getElementById('import-actions').style.display='block';
 }
-function parseCSV(text){
+function parseCSV(text){if(String(text).split(/\r?\n/).length>10001)throw new Error('El CSV supera 10.000 filas.');
   parsedImportRows=[];const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
   if(lines.length<2){setImportStatus('err','Encabezado y datos requeridos.');return;}
   const parseRow=row=>{const cells=[];let cur='',inQ=false;for(let i=0;i<row.length;i++){const ch=row[i];if(ch==='"'){if(inQ&&row[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}else if(ch===','&&!inQ){cells.push(cur.trim());cur='';}else cur+=ch;}cells.push(cur.trim());return cells;};
@@ -1837,12 +1749,11 @@ function parseCSV(text){
   const colKeys={id:['id'],nombre:['nombre','name','insumo'],categoria:['categoria','categoría','cat'],cantidad:['cantidad','qty'],unidad:['unidad','unit','um'],costo:['costo','cost','precio','price'],proveedor:['proveedor','supplier'],obs:['observaciones','obs','notas']};
   const colIdx={};for(const[key,aliases]of Object.entries(colKeys))for(const alias of aliases){const idx=headers.indexOf(norm(alias));if(idx>=0){colIdx[key]=idx;break;}}
   if(colIdx.nombre===undefined){setImportStatus('err','No se encontró columna "Nombre".');return;}
-  const valid=[];lines.slice(1).map(parseRow).forEach(row=>{const nombre=(colIdx.nombre!==undefined?row[colIdx.nombre]:'').trim();if(!nombre)return;const catRaw=(colIdx.categoria!==undefined?row[colIdx.categoria]:'').trim().toLowerCase();valid.push({id:(colIdx.id!==undefined?row[colIdx.id]:'').trim()||null,nombre,categoria:CAT_MAP[catRaw]||'carne',cantidad:colIdx.cantidad!==undefined?parseFloat(row[colIdx.cantidad])||null:null,unidad:(colIdx.unidad!==undefined?row[colIdx.unidad]:'').trim()||'kg',costo:colIdx.costo!==undefined?parseFloat(row[colIdx.costo])||0:0,proveedor:(colIdx.proveedor!==undefined?row[colIdx.proveedor]:'').trim(),obs:(colIdx.obs!==undefined?row[colIdx.obs]:'').trim()});});
+  const valid=[];validarFilasImportacion(lines.slice(1).map(parseRow)).forEach(row=>{const nombre=(colIdx.nombre!==undefined?row[colIdx.nombre]:'').trim();if(!nombre)return;const catRaw=(colIdx.categoria!==undefined?row[colIdx.categoria]:'').trim().toLowerCase();valid.push({id:(colIdx.id!==undefined?row[colIdx.id]:'').trim()||null,nombre,categoria:CAT_MAP[catRaw]||'carne',cantidad:colIdx.cantidad!==undefined?parseFloat(row[colIdx.cantidad])||null:null,unidad:(colIdx.unidad!==undefined?row[colIdx.unidad]:'').trim()||'kg',costo:colIdx.costo!==undefined?parseFloat(row[colIdx.costo])||0:0,proveedor:(colIdx.proveedor!==undefined?row[colIdx.proveedor]:'').trim(),obs:(colIdx.obs!==undefined?row[colIdx.obs]:'').trim()});});
   parsedImportRows=valid;
   setImportStatus(valid.length?'ok':'err',valid.length?`${valid.length} filas listas.`:'Sin datos válidos.');
-  if(valid.length){document.getElementById('import-preview-area').innerHTML=`<div style="font-size:11px;color:var(--text2);margin:10px 0 4px;">Vista previa:</div><div class="preview-wrap"><table style="font-size:12px;width:100%"><thead><tr><th style="padding:6px 10px;background:var(--bg2);">Nombre</th><th style="padding:6px 10px;background:var(--bg2);">Cat.</th><th style="padding:6px 10px;background:var(--bg2);">Unidad</th><th style="padding:6px 10px;background:var(--bg2);">Costo</th></tr></thead><tbody>${valid.slice(0,5).map(r=>`<tr><td style="padding:5px 10px;">${r.nombre}</td><td style="padding:5px 10px;">${capCat(r.categoria)}</td><td style="padding:5px 10px;">${r.unidad}</td><td style="padding:5px 10px;text-align:right;">${fmtMoney(r.costo)}</td></tr>`).join('')}</tbody></table></div>`;document.getElementById('import-actions').style.display='block';}
+  if(valid.length){document.getElementById('import-preview-area').innerHTML=`<div style="font-size:11px;color:var(--text2);margin:10px 0 4px;">Vista previa:</div><div class="preview-wrap"><table style="font-size:12px;width:100%"><thead><tr><th style="padding:6px 10px;background:var(--bg2);">Nombre</th><th style="padding:6px 10px;background:var(--bg2);">Cat.</th><th style="padding:6px 10px;background:var(--bg2);">Unidad</th><th style="padding:6px 10px;background:var(--bg2);">Costo</th></tr></thead><tbody>${valid.slice(0,5).map(r=>`<tr><td style="padding:5px 10px;">${escapeF7(r.nombre)}</td><td style="padding:5px 10px;">${escapeF7(capCat(r.categoria))}</td><td style="padding:5px 10px;">${escapeF7(r.unidad)}</td><td style="padding:5px 10px;text-align:right;">${fmtMoney(r.costo)}</td></tr>`).join('')}</tbody></table></div>`;document.getElementById('import-actions').style.display='block';}
 }
-function setImportStatus(type,msg){const icons={ok:'ti-circle-check',warn:'ti-alert-triangle',err:'ti-circle-x'};document.getElementById('import-status-area').innerHTML=`<div class="import-status ${type}"><i class="ti ${icons[type]}" style="font-size:16px;"></i>${msg}</div>`;}
 async function confirmImport(){if(!permitirEscrituraF7())return;
   if(importMode==='xlsx'&&xlsxFullData){
     let ai=0,ui=0;
@@ -1861,7 +1772,7 @@ function exportCSV(type){
   let rows,header,filename;
   if(type==='inventario'){header=INV_COLS;rows=invData.map(i=>[i.id,i.nombre,capCat(i.categoria),i.cantidad!==null?i.cantidad:'',i.unidad,i.costo,i.proveedor,i.obs]);filename='inventario_productos.csv';}
   else{header=['ID','Nombre','Ingredientes','Total'];rows=cfData.map(cf=>{const items=(cf.items&&cf.items.length?cf.items:[cf.p1,cf.p2,cf.p3,cf.p4].filter(Boolean).map(id=>({id,qty:1}))).map(item=>{const i=invData.find(x=>x.id===item.id);return i?(item.qty&&item.qty!==1?item.qty+'x ':'')+i.nombre:'';}).filter(Boolean).join(', ');return[cf.id,cf.nombre,items,cf.total];});filename='costos_fijos.csv';}
-  const csv=[header,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const csv=[header,...rows].map(r=>r.map(c=>`"${textoCSVSeguro(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
 }
 function exportExcel(){
@@ -2052,7 +1963,7 @@ function recalc(){
     document.getElementById('f7-base-info').textContent=`Ingredientes con inflación de ${entrada.ingredientes.inflacion??0}%. Se conservan estos costos al reabrir. Usá “Actualizar precios” para tomar el catálogo actual.`;
   }catch(e){resumen.innerHTML='<div role="alert" class="f7-error">'+escapeF7(e.message)+'</div>';document.querySelectorAll('.f7-subtotal').forEach(x=>x.textContent='Pendiente de cálculo');}
 }
-function permitirEscrituraF7(){if(currentUserRole!=='full'){alert('Tu usuario tiene acceso de solo lectura.');return false;}return true;}
+function permitirEscrituraF7(){if(!usuarioActual||currentUserRole!=='full'){alert('Tu usuario tiene acceso de solo lectura.');return false;}return true;}
 function prepararRegistroF7(cliente,fecha,notas,entrada,r){
   const s=xs=>xs.reduce((a,x)=>a+x.costo,0),v=r.rentabilidad;
   return {cliente,fecha,notas,menu_id:entrada.ingredientes.menu_id||null,menu_nombre:entrada.ingredientes.menu_nombre||'',personas:r.produccion.personas,parrilleros:r.personal.reduce((s,p)=>s+Number(p.cantidad),0),costo_parrillero:s(r.personal),parrilleros_detalle:r.personal,equipos_seleccionados:r.equipos,costo_insumos:r.ingredientes,costo_por_persona_menu:entrada.ingredientes.costoPorPersona,margen_inflacion:entrada.ingredientes.inflacion??0,costo_equipo:s(r.equipos),otros_costos:r.otros,margen:entrada.objetivo,costo_total:r.total,ganancia:v.utilidad,precio_final:v.venta,precio_por_persona:v.precioPersona,calculo_evento:JSON.parse(JSON.stringify({version:8,capturado_en:new Date().toISOString(),entrada,resultado:r}))};
@@ -2237,7 +2148,7 @@ function renderHistorial(){
     const rows=filtrarEventos(cotizaciones,...filtrosEventos('hist')).sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
     cont.innerHTML=(!historialCompleto?'<p class="f7-error">Vista parcial. Pulsá Actualizar para cargar todo el historial.</p>':'')+`<p class="f7-note">${rows.length} cotizaciones · Filtro por fecha del evento</p>`+rows.map(c=>{
       const {resultado:r}=modeloCotizacion(c),v=r.rentabilidad,id=encodeURIComponent(c.id),estado=ESTADOS_EVENTO[c.estado]||'Borrador';
-      return `<div class="hist-card"><div><div class="hist-cliente">${escapeF7(c.cliente)}</div><p class="hist-meta">${escapeF7(c.fecha||'Sin fecha')} · ${escapeF7(c.menu_nombre||'Sin menú')} · ${r.produccion.personas} personas</p><span class="f8-badge">${estado}</span><span class="f8-badge">Margen real: ${porcentajeVisible(v.margen)}</span>${c.resultado_real?.completo?'<span class="f8-badge">Resultado real completo</span>':''}</div><div><div class="hist-precio">${fmtMoney(v.venta)}</div><div class="hist-ppersona">Utilidad estimada: ${fmtMoney(v.utilidad)}</div><div class="hist-actions"><button class="btn xs" data-evento="${id}" onclick="verDetalleEvento(decodeURIComponent(this.dataset.evento))">Ver detalle</button><button class="btn xs" data-evento="${id}" onclick="openEditCotizacion(decodeURIComponent(this.dataset.evento))">Editar cotización</button><button class="btn xs" data-evento="${id}" onclick="exportarCotizacionExcel(decodeURIComponent(this.dataset.evento))">Excel</button><button class="btn xs danger" data-evento="${id}" onclick="deleteCotizacion(decodeURIComponent(this.dataset.evento))">Eliminar</button></div></div></div>`;
+      return `<div class="hist-card"><div><div class="hist-cliente">${escapeF7(c.cliente)}</div><p class="hist-meta">${escapeF7(c.fecha||'Sin fecha')} · ${escapeF7(c.menu_nombre||'Sin menú')} · ${escapeF7(r.produccion.personas)} personas</p><span class="f8-badge">${estado}</span><span class="f8-badge">Margen real: ${porcentajeVisible(v.margen)}</span>${c.resultado_real?.completo?'<span class="f8-badge">Resultado real completo</span>':''}</div><div><div class="hist-precio">${fmtMoney(v.venta)}</div><div class="hist-ppersona">Utilidad estimada: ${fmtMoney(v.utilidad)}</div><div class="hist-actions"><button class="btn xs" data-evento="${id}" onclick="verDetalleEvento(decodeURIComponent(this.dataset.evento))">Ver detalle</button><button class="btn xs" data-evento="${id}" onclick="openEditCotizacion(decodeURIComponent(this.dataset.evento))">Editar cotización</button><button class="btn xs" data-evento="${id}" onclick="exportarCotizacionExcel(decodeURIComponent(this.dataset.evento))">Excel</button><button class="btn xs danger" data-evento="${id}" onclick="deleteCotizacion(decodeURIComponent(this.dataset.evento))">Eliminar</button></div></div></div>`;
     }).join('')+(rows.length?'':'<div class="empty">No hay cotizaciones para estos filtros.</div>');
   }catch(e){cont.innerHTML='<p class="f7-error">'+escapeF7(e.message)+'</p>';}
 }
@@ -2280,6 +2191,7 @@ function recalcResultadoReal(){
   }catch(e){document.getElementById('real-comparacion').innerHTML='<p class="f7-error">'+escapeF7(e.message)+'</p>';}
 }
 async function actualizarEventoGuardado(id,patch,revision){
+  if(!permitirEscrituraF7())throw new Error('Sin permiso de escritura.');
   if(revision==null)throw new Error('Falta la migración de fases 8–11 o el registro está desactualizado. Ejecutá el SQL y recargá el historial.');
   const {data,error}=await sbClient.from('cotizaciones').update(patch).eq('id',id).eq('revision',revision).select().maybeSingle();
   if(error)throw error;if(!data)throw new Error('La cotización cambió en otra sesión o no tenés permiso. Recargá el historial antes de guardar.');
@@ -2382,6 +2294,84 @@ function renderCF(){
     return `<tr><td>${escapeF7(cf.id)}</td><td>${escapeF7(cf.nombre)}</td><td>${(cf.items||[]).map(x=>escapeF7((itemLabel(x.id)||x.id)+' × '+x.qty+(x.unidad?' '+x.unidad:''))).join('<br>')}</td><td>${error?escapeF7(error):fmtMoney(total)}</td><td>${cf.rendimiento_cantidad?escapeF7(cf.rendimiento_cantidad+' '+cf.rendimiento_unidad):'Lote sin rendimiento'}</td><td>${unit==null?'—':monedaPrecisa(unit)+' / '+escapeF7(cf.rendimiento_unidad)}</td><td><button class="btn sm" data-receta="${id}" onclick="editCF(decodeURIComponent(this.dataset.receta))">Editar</button><button class="btn sm danger" data-receta="${id}" onclick="deleteCF(decodeURIComponent(this.dataset.receta))">Eliminar</button></td></tr>`;
   }).join('')||'<tr><td colspan="7"><div class="empty">Sin recetas aún.</div></td></tr>';
 }
+
+// Seguridad: codificación según el contexto y acceso cerrado por defecto.
+function parametroSeguro(v){return encodeURIComponent(String(v??'')).replace(/'/g,'%27');}
+function textoCSVSeguro(v){const s=String(v??'');return typeof v==='string'&&/^[\s]*[=+@-]/.test(s)?"'"+s:s;}
+function colorSeguro(v,fallback='#333333'){return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(String(v))?String(v):fallback;}
+function badgeStyle(c){const cat=listasConfig.categorias.find(x=>x.valor===c);return cat?`background:${colorSeguro(cat.color_bg,'#eeeeee')};color:${colorSeguro(cat.color_text)};`:'background:var(--bg2);color:var(--text2);';}
+function resaltarSeguro(texto,consulta){
+  const text=String(texto??''),q=String(consulta??'');if(!q)return escapeF7(text);
+  const lower=text.toLocaleLowerCase(),needle=q.toLocaleLowerCase();let start=0,out='',pos;
+  while((pos=lower.indexOf(needle,start))!==-1){out+=escapeF7(text.slice(start,pos))+'<mark>'+escapeF7(text.slice(pos,pos+q.length))+'</mark>';start=pos+q.length;}
+  return out+escapeF7(text.slice(start));
+}
+let usuarioActual=null,administradorActual=false;
+async function initAuth(){
+  if(!CONFIGURED||!sbClient){showLoginError('No se pudo cargar la conexión. Revisá la conexión a Internet.');return;}
+  try{const {data,error}=await sbClient.auth.getSession();if(error)throw error;if(data.session)await enterApp(data.session.user);}catch(e){showLoginError('No se pudo validar la sesión. Volvé a ingresar.');}
+  sbClient.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){currentUserRole='readonly';usuarioActual=null;administradorActual=false;document.getElementById('main-app').style.display='none';document.getElementById('login-screen').style.display='flex';invData=[];cfData=[];menuData=[];cotizaciones=[];}});
+}
+async function enterApp(user){
+  currentUserRole='readonly';usuarioActual=null;administradorActual=false;
+  document.getElementById('main-app').style.display='none';
+  try{
+    const {data:verified,error:authError}=await sbClient.auth.getUser();if(authError||!verified.user||verified.user.id!==user.id)throw new Error('Sesión inválida.');
+    const {data:member,error}=await sbClient.from('app_usuarios').select('id,email,rol').eq('id',verified.user.id).maybeSingle();
+    if(error||!member||!['full','readonly'].includes(member.rol))throw new Error('Tu cuenta no tiene acceso habilitado. Contactá al administrador.');
+    usuarioActual=verified.user;currentUserRole=member.rol;
+    const admin=await sbClient.rpc('brumas_es_admin_seguro');administradorActual=!admin.error&&admin.data===true;
+    document.getElementById('user-email-label').textContent=user.email||'';document.getElementById('nav-mant').style.display=administradorActual?'flex':'none';
+    applyRoleRestrictions();await loadAllData();
+    document.getElementById('login-screen').style.display='none';document.getElementById('main-app').style.display='flex';
+  }catch(e){await sbClient.auth.signOut({scope:'local'});showLoginError(e.message);}
+}
+function applyRoleRestrictions(){
+  document.getElementById('readonly-style')?.remove();document.getElementById('readonly-badge')?.remove();
+  if(currentUserRole!=='readonly')return;
+  const style=document.createElement('style');style.id='readonly-style';style.textContent='.btn.primary,.btn.danger,.btn.success,#nav-mant{display:none!important}';document.head.appendChild(style);
+  const badge=document.createElement('span');badge.id='readonly-badge';badge.textContent='Solo lectura';badge.className='f8-badge';document.getElementById('user-email-label').after(badge);
+}
+function permitirAdminSeguro(){if(!usuarioActual||!administradorActual){alert('Esta acción requiere una cuenta administradora.');return false;}return true;}
+async function guardarAccionUsuario(body){
+  if(!permitirAdminSeguro())throw new Error('Sin autorización.');
+  const {data,error}=await sbClient.functions.invoke('brumas-usuarios',{body});
+  if(error||!data?.ok)throw new Error(data?.error||'No se pudo completar la acción. Verificá que la función brumas-usuarios esté desplegada y tu acceso siga vigente.');
+  return data;
+}
+async function saveUsuario(){
+  if(!permitirAdminSeguro())return;
+  const id=valorF7('usuario-edit-id'),email=valorF7('usuario-email').trim(),password=valorF7('usuario-pass'),rol=valorF7('usuario-rol');
+  const err=document.getElementById('usuario-error'),btn=document.getElementById('usuario-save-btn');err.style.display='none';
+  try{if(!email||!['full','readonly'].includes(rol))throw new Error('Revisá correo y rol.');if((!id||password)&&password.length<12)throw new Error('Usá una contraseña de al menos 12 caracteres.');btn.disabled=true;
+    await guardarAccionUsuario({action:id?'update':'create',id:id||undefined,email,password:password||undefined,rol});
+    ponerF7('usuario-pass','');closeModal('usuario');await loadUsuarios();
+  }catch(e){err.textContent=e.message;err.style.display='block';}finally{btn.disabled=false;}
+}
+async function deleteUsuario(id,email){
+  if(!permitirAdminSeguro()||!confirm('¿Revocar el acceso de '+email+'?'))return;
+  try{await guardarAccionUsuario({action:'revoke',id});await loadUsuarios();}catch(e){alert(e.message);}
+}
+function validarArchivoImportacion(file){
+  if(!file)throw new Error('Seleccioná un archivo.');if(file.size>5*1024*1024)throw new Error('El archivo supera el límite de 5 MB.');
+  return file;
+}
+function validarFilasImportacion(rows){
+  if(rows.length>10000)throw new Error('Se permiten hasta 10.000 filas por importación.');
+  rows.forEach(r=>{if(r.length>100||r.some(c=>String(c??'').length>20000))throw new Error('El archivo contiene demasiadas columnas o textos excesivamente largos.');});return rows;
+}
+function handleFile(file){
+  try{validarArchivoImportacion(file);if(!/\.(csv|txt)$/i.test(file.name))throw new Error('Seleccioná un archivo CSV.');
+    const reader=new FileReader();reader.onload=e=>{try{parseCSV(e.target.result);}catch(err){setImportStatus('err',err.message);}};reader.onerror=()=>setImportStatus('err','No se pudo leer el archivo.');reader.readAsText(file,'UTF-8');
+  }catch(e){setImportStatus('err',e.message);}
+}
+function handleXlsx(file){
+  try{validarArchivoImportacion(file);if(!/\.(xlsx|xls)$/i.test(file.name))throw new Error('Seleccioná un archivo Excel.');if(typeof XLSX==='undefined')throw new Error('No se pudo cargar Excel.');
+    const reader=new FileReader();reader.onload=e=>{try{parseXlsxWorkbook(XLSX.read(new Uint8Array(e.target.result),{type:'array',sheetRows:10002,cellFormula:false,cellHTML:false,cellStyles:false}));}catch(err){setImportStatus('err',err.message||'No se pudo leer Excel.');}};reader.onerror=()=>setImportStatus('err','No se pudo leer el archivo.');reader.readAsArrayBuffer(file);
+  }catch(e){setImportStatus('err',e.message);}
+}
+function sheetToRows(ws){return validarFilasImportacion(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}).filter(r=>r.some(c=>String(c).trim()!=='')));}
+function setImportStatus(type,msg){const el=document.getElementById('import-status-area');el.textContent=String(msg??'');el.className=type==='err'?'f7-error':'f7-note';}
 
  inicializarEventosUI();
 initAuth();
