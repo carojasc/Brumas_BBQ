@@ -1257,10 +1257,27 @@ function allItemsList(){
 }
 
 let pickerCounter=0;
+function getUnidadesCompatibles(itemId,unidadActual=''){
+  // Determinar familia del insumo/receta para filtrar unidades compatibles
+  const inv=invData.find(x=>x.id===itemId);
+  const cf=cfData.find(x=>x.id===itemId);
+  const unidadBase=inv?inv.unidad:(cf?cf.rendimiento_unidad:'');
+  const n=normalizarUnidad(unidadBase);
+  const masa=['kg','g'];const volumen=['ml','L'];
+  let compatibles=[];
+  if(masa.includes(n))compatibles=masa;
+  else if(volumen.includes(n))compatibles=volumen;
+  // Siempre incluir "Unidad original" y las compatibles
+  const opts='<option value="">Unidad original / lote completo</option>'+
+    (compatibles.length?compatibles.map(u=>`<option value="${u}"${u===unidadActual?' selected':''}>${u}</option>`).join(''):'');
+  return opts;
+}
+
 function addComboItem(cid,value='',qty=1,unidad=''){
   const itemsCont=document.getElementById(cid).querySelector('.combo-items');
   const row=document.createElement('div');row.className='combo-item-row';
   const pid='picker-'+(++pickerCounter);
+  // Unidades por defecto — se actualizan al seleccionar el ingrediente
   const unidadOpts='<option value="">Unidad original / lote completo</option>'+['kg','g','ml','L','unidades','porciones'].map(u=>`<option value="${u}"${u===unidad?' selected':''}>${u}</option>`).join('');
   row.innerHTML=`
     <div class="item-picker" id="${pid}">
@@ -1278,7 +1295,12 @@ function addComboItem(cid,value='',qty=1,unidad=''){
     <button class="btn xs danger" onclick="this.closest('.combo-item-row').remove();recalcMenuTotal()"><i class="ti ti-x"></i></button>`;
   itemsCont.appendChild(row);
   renderPickerOptions(pid, '');
-  if(value) setPickerValue(pid, value);
+  if(value){
+    setPickerValue(pid, value);
+    // Actualizar unidades compatibles después de seleccionar el ítem
+    const sel=row.querySelector('.item-unidad');
+    if(sel)sel.innerHTML=getUnidadesCompatibles(value,unidad);
+  }
   recalcMenuTotal();
 }
 
@@ -1322,6 +1344,15 @@ function setPickerValue(pid, id){
   picker.querySelector('.item-picker-value').value=id||'';
   picker.querySelector('.item-picker-input').value=item?`${item.label} (${item.detail})`:'';
   document.getElementById(pid+'-dd').classList.remove('open');
+  // Actualizar selector de unidades compatibles en combos del menú
+  const row=picker.closest('.combo-item-row');
+  if(row&&id){
+    const sel=row.querySelector('.item-unidad');
+    if(sel){
+      const unidadActual=sel.value;
+      sel.innerHTML=getUnidadesCompatibles(id,unidadActual);
+    }
+  }
   recalcMenuTotal();
 }
 
@@ -1789,16 +1820,26 @@ function numeroCosto(value, etiqueta, positivo=false){
   if(!Number.isFinite(n)||n<0||(positivo&&n===0))throw new Error(etiqueta+': ingresá un número '+(positivo?'mayor que cero':'no negativo')+'.');
   return n;
 }
-function normalizarUnidad(u){
-  const v=String(u||'').trim().toLowerCase();
-  return ({gramo:'g',gramos:'g',kilogramo:'kg',kilogramos:'kg',litro:'l',litros:'l',mililitro:'ml',mililitros:'ml',unidad:'unidades',und:'unidades',ud:'unidades',porcion:'porciones','porción':'porciones'})[v]||v;
-}
 function convertirCantidad(cantidad,desde,hasta){
   const n=numeroCosto(cantidad,'Cantidad'),a=normalizarUnidad(desde),b=normalizarUnidad(hasta);
-  if(a===b)return n;
-  const unidades={g:['masa',1],kg:['masa',1000],ml:['volumen',1],l:['volumen',1000]};
-  if(!unidades[a]||!unidades[b]||unidades[a][0]!==unidades[b][0])throw new Error('No se puede convertir '+(desde||'unidad vacía')+' a '+(hasta||'unidad vacía')+'. Revisá el menú o la receta.');
-  return n*unidades[a][1]/unidades[b][1];
+  if(a===b||!a||!b)return n;
+  // Unidades no numéricas — usar lote completo
+  const noNumericas=['unidades','porciones',''];
+  if(noNumericas.includes(a)||noNumericas.includes(b))return n;
+  // Tabla de conversión: familia + factor a unidad base
+  const unidades={
+    'g':['masa',1],'kg':['masa',1000],
+    'ml':['volumen',1],'l':['volumen',1000],'L':['volumen',1000]
+  };
+  const ua=unidades[a],ub=unidades[b];
+  if(!ua||!ub||ua[0]!==ub[0])throw new Error('No se puede convertir '+(desde||'unidad vacía')+' a '+(hasta||'unidad vacía')+'. Revisá el menú o la receta.');
+  return n*ua[1]/ub[1];
+}
+function normalizarUnidad(u){
+  const v=String(u||'').trim().toLowerCase();
+  // Preservar L mayúscula como litro
+  if(String(u||'').trim()==='L')return 'L';
+  return ({gramo:'g',gramos:'g',kilogramo:'kg',kilogramos:'kg',litro:'l',litros:'l',mililitro:'ml',mililitros:'ml',unidad:'unidades',und:'unidades',ud:'unidades',porcion:'porciones','porción':'porciones','unidad original / lote completo':'','lote':''})[v]||v;
 }
 function costoReal(inv){
   const merma=numeroCosto(inv.merma??0,'Merma de '+inv.nombre);
