@@ -685,12 +685,9 @@ textarea{resize:vertical;min-height:60px;}
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">% Merma <span style="color:var(--text2);font-weight:400;">(pérdida en preparación)</span></label>
-        <input type="number" id="inv-merma" placeholder="0" min="0" max="99" step="0.5" oninput="syncMermaRendimiento('merma')"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">% Rendimiento <span style="color:var(--text2);font-weight:400;">(= 100 - merma)</span></label>
-        <input type="number" id="inv-rendimiento" placeholder="100" min="1" max="100" step="0.5" oninput="syncMermaRendimiento('rendimiento')"/>
+        <label class="form-label">% Merma <span style="color:var(--text2);font-weight:400;">(pérdida estimada antes de usar el insumo)</span></label>
+        <input type="number" id="inv-merma" placeholder="0" min="0" max="99.99" step="0.5" oninput="updateCostoRealPreview()"/>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px;">El rendimiento se calcula como 100% − merma. Las cantidades de las recetas se interpretan como netas utilizables; la merma se aplica una sola vez al calcular la compra.</div>
       </div>
     </div>
     <div class="form-group">
@@ -869,14 +866,12 @@ let margenInflacion=parseFloat(localStorage.getItem('brumas_margen_inflacion')||
 let currentUserRole='readonly'; // 'full' o 'readonly'
 // Costo real ajustado por merma: si tiene 20% merma, costo real = costo / 0.80
 function costoConMargen(costo){return costo*(1+margenInflacion/100);}
-function setMargenInflacion(val){if(!permitirEscrituraF7())return;
-  margenInflacion=Math.max(0,parseFloat(val)||0);
-  localStorage.setItem('brumas_margen_inflacion',margenInflacion);
-  // Guardar en Supabase para sincronizar entre dispositivos
-  sbClient.from('app_config').upsert({clave:'margen_inflacion',valor:String(margenInflacion)},{onConflict:'clave'}).then(({error})=>{if(error)console.error('Error guardando margen:',error);});
-  renderInventario();
+async function setMargenInflacion(val){if(!permitirEscrituraF7())return;
+  const nuevo=Math.max(0,parseFloat(val)||0);
+  try{const{error}=await sbClient.from('app_config').upsert({clave:'margen_inflacion',valor:String(nuevo)},{onConflict:'clave'});if(error)throw error;margenInflacion=nuevo;localStorage.setItem('brumas_margen_inflacion',margenInflacion);renderInventario();}
+  catch(error){console.error('Error guardando margen:',error);alert('No se pudo guardar la proyección de inflación en Supabase. El valor anterior se mantiene.');const input=document.getElementById('inv-margen-inflacion');if(input)input.value=margenInflacion;}
 }
-const INV_COLS=['ID','Nombre','Categoria','Cantidad','Unidad','Costo (₡)','Proveedor','Observaciones'];
+const INV_COLS=['ID','Nombre','Categoria','Cantidad','Unidad','Costo (₡)','Merma (%)','Proveedor','Observaciones'];
 const CAT_MAP={carne:'carne',pollo:'pollo',cerdo:'cerdo',condimento:'condimento',aderezo:'aderezo',salsa:'salsa',vegetal:'vegetal',carbon:'carbon','carbón':'carbon',lena:'lena','leña':'lena'};
 const TIPOS_COMBO=['General','Entrada','Plato fuerte','Postre','Bebida','Acompañamiento'];
 
@@ -956,8 +951,8 @@ async function loadAllData(){
   renderInventario();renderCF();renderMenus();renderTodasListas();
 }
 
-async function dbUpsert(table,row){if(!permitirEscrituraF7())return;setSyncStatus('loading','Guardando...');const{error}=await sbClient.from(table).upsert(row,{onConflict:'id'});setSyncStatus(error?'error':'ok',error?'Error':'Sincronizado');if(error)console.error(error);}
-async function dbDelete(table,id){if(!permitirEscrituraF7())return;setSyncStatus('loading','Guardando...');const{error}=await sbClient.from(table).delete().eq('id',id);setSyncStatus(error?'error':'ok',error?'Error':'Sincronizado');}
+async function dbUpsert(table,row){if(!permitirEscrituraF7())return false;setSyncStatus('loading','Guardando...');try{const{error}=await sbClient.from(table).upsert(row,{onConflict:'id'});if(error){setSyncStatus('error','Error al guardar');console.error(error);return false;}setSyncStatus('ok','Sincronizado');return true;}catch(error){setSyncStatus('error','Error al guardar');console.error(error);return false;}}
+async function dbDelete(table,id){if(!permitirEscrituraF7())return false;setSyncStatus('loading','Guardando...');try{const{error}=await sbClient.from(table).delete().eq('id',id);if(error){setSyncStatus('error','Error al eliminar');console.error(error);return false;}setSyncStatus('ok','Sincronizado');return true;}catch(error){setSyncStatus('error','Error al eliminar');console.error(error);return false;}}
 function nextId(prefix,arr){return prefix+'-'+String(arr.length+1+Math.floor(Math.random()*900)).padStart(3,'0');}
 
 // ── UI ─────────────────────────────────────────────────────────────────────
@@ -974,7 +969,7 @@ function showSection(name,btn){
 }
 
 function openModal(type){
-  if(type==='inv'){document.getElementById('inv-edit-id').value='';document.getElementById('inv-modal-title').textContent='Agregar insumo';['inv-nombre','inv-obs'].forEach(id=>document.getElementById(id).value='');document.getElementById('inv-costo').value='';document.getElementById('inv-cantidad').value='';document.getElementById('inv-merma').value='0';document.getElementById('inv-rendimiento').value='100';document.getElementById('inv-costo-real-preview').querySelector('span').textContent='₡0';populateInvSelects();}
+  if(type==='inv'){document.getElementById('inv-edit-id').value='';document.getElementById('inv-modal-title').textContent='Agregar insumo';['inv-nombre','inv-obs'].forEach(id=>document.getElementById(id).value='');document.getElementById('inv-costo').value='';document.getElementById('inv-cantidad').value='';document.getElementById('inv-merma').value='0';document.getElementById('inv-costo-real-preview').querySelector('span').textContent='₡0';populateInvSelects();}
   if(type==='cf'){document.getElementById('cf-edit-id').value='';document.getElementById('cf-modal-title').textContent='Nueva receta';document.getElementById('cf-nombre').value='';document.getElementById('cf-rend-cantidad').value='';document.getElementById('cf-rend-unidad').value='unidades';document.getElementById('cf-costo-por-unidad').textContent='₡—';document.getElementById('cf-ingredients-container').innerHTML='';cfPickerCounter=0;buildCFIngredients();document.getElementById('cf-total').textContent='₡0';}
   if(type==='mn'){document.getElementById('mn-edit-id').value='';document.getElementById('mn-modal-title').textContent='Nuevo menú';document.getElementById('mn-nombre').value='';document.getElementById('mn-desc').value='';document.getElementById('mn-combos-container').innerHTML='';document.getElementById('mn-total-costo').textContent='₡0';addComboBlock();}
   document.getElementById('modal-'+type).classList.add('open');
@@ -996,13 +991,16 @@ function populateInvSelects(){
 
 async function saveInventario(){
   if(!permitirEscrituraF7())return;
-  try{numeroCosto(valorF7('inv-costo'),'Costo de compra');const m=numeroCosto(valorF7('inv-merma'),'Merma');if(m>=100)throw new Error('La merma debe ser menor a 100%.');}catch(e){return alert(e.message);}
+  let costo,merma,cantidad;
+  try{costo=numeroCosto(valorF7('inv-costo'),'Costo de compra');merma=numeroCosto(valorF7('inv-merma'),'Merma');const cantidadTexto=valorF7('inv-cantidad').trim();cantidad=cantidadTexto===''?null:numeroCosto(cantidadTexto,'Cantidad');if(merma>=100)throw new Error('La merma debe ser menor a 100%.');}catch(e){return alert(e.message);}
   const editId=document.getElementById('inv-edit-id').value;
-  const item={id:editId||nextId('INS',invData),nombre:document.getElementById('inv-nombre').value.trim(),categoria:document.getElementById('inv-cat').value,cantidad:parseFloat(document.getElementById('inv-cantidad').value)||null,unidad:document.getElementById('inv-unidad').value,costo:parseFloat(document.getElementById('inv-costo').value)||0,merma:parseFloat(document.getElementById('inv-merma').value)||0,proveedor:document.getElementById('inv-proveedor-sel').value,obs:document.getElementById('inv-obs').value.trim()};
+  const item={id:editId||nextId('INS',invData),nombre:document.getElementById('inv-nombre').value.trim(),categoria:document.getElementById('inv-cat').value,cantidad,unidad:document.getElementById('inv-unidad').value,costo,merma,proveedor:document.getElementById('inv-proveedor-sel').value,obs:document.getElementById('inv-obs').value.trim()};
   if(!item.nombre)return alert('Ingresá el nombre del insumo.');
-  if(editId){const idx=invData.findIndex(i=>i.id===editId);if(idx>=0)invData[idx]=item;}else invData.push(item);
+  const guardado=await dbUpsert('inventario',item);
+  if(!guardado)return alert('No se guardó el insumo en Supabase. Revisá la conexión o los permisos e intentá de nuevo.');
+  const idx=invData.findIndex(i=>i.id===editId);
+  if(editId&&idx>=0)invData[idx]=item;else if(!editId)invData.push(item);
   closeModal('inv');renderInventario();recalcCFs();
-  await dbUpsert('inventario',{id:item.id,nombre:item.nombre,categoria:item.categoria,cantidad:item.cantidad,unidad:item.unidad,costo:item.costo,merma:item.merma,proveedor:item.proveedor,obs:item.obs});
 }
 
 function renderInventario(){
@@ -1012,12 +1010,16 @@ function renderInventario(){
   if(margenInput&&parseFloat(margenInput.value)!==margenInflacion)margenInput.value=margenInflacion;
   const factorEl=document.getElementById('inv-margen-factor');
   if(factorEl)factorEl.textContent=(1+margenInflacion/100).toFixed(2);
-  const totalCosto=invData.reduce((s,i)=>s+i.costo,0);
-  const totalConMargen=invData.reduce((s,i)=>s+costoConMargen(i.costo),0);
+  const conCantidad=invData.filter(i=>i.cantidad!==null&&i.cantidad!==''&&Number.isFinite(Number(i.cantidad))&&Number(i.cantidad)>=0);
+  const valorCompra=conCantidad.reduce((s,i)=>s+Number(i.cantidad)*Number(i.costo||0),0);
+  const valorUtilizable=conCantidad.reduce((s,i)=>s+Number(i.cantidad)*costoReal(i),0);
+  const valorProyectado=valorUtilizable*(1+margenInflacion/100);
+  const mostrarValor=valor=>conCantidad.length?fmtMoney(valor):'—';
   document.getElementById('inv-metrics').innerHTML=
-    '<div class="metric"><div class="metric-label">Total insumos</div><div class="metric-value">'+invData.length+'</div></div>'+
-    '<div class="metric"><div class="metric-label">Costo total real</div><div class="metric-value cost-total">'+fmtMoney(totalCosto)+'</div></div>'+
-    '<div class="metric"><div class="metric-label">Costo total +'+margenInflacion+'%</div><div class="metric-value" style="color:#854F0B;">'+fmtMoney(totalConMargen)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">Total insumos</div><div class="metric-value">'+invData.length+'</div></div>'+ 
+    '<div class="metric"><div class="metric-label">Valor inventario (compra)</div><div class="metric-value">'+mostrarValor(valorCompra)+'</div><div style="font-size:10px;color:var(--text2);margin-top:3px;">'+conCantidad.length+' con cantidad registrada</div></div>'+ 
+    '<div class="metric"><div class="metric-label">Valor utilizable estimado</div><div class="metric-value cost-total">'+mostrarValor(valorUtilizable)+'</div><div style="font-size:10px;color:var(--text2);margin-top:3px;">Incluye merma estimada</div></div>'+ 
+    '<div class="metric"><div class="metric-label">Proyección +'+margenInflacion+'% inflación</div><div class="metric-value" style="color:#854F0B;">'+mostrarValor(valorProyectado)+'</div></div>'+ 
     '<div class="metric"><div class="metric-label">Categorías</div><div class="metric-value">'+new Set(invData.map(i=>i.categoria)).size+'</div></div>';
   // Populate category filter
   const catSel=document.getElementById('inv-filter-cat');
@@ -1083,26 +1085,12 @@ function clearInvSearch(){
   renderInvRows(invData,'','');
 }
 
-function syncMermaRendimiento(origen){
-  const mermaEl=document.getElementById('inv-merma');
-  const rendEl=document.getElementById('inv-rendimiento');
-  if(!mermaEl||!rendEl)return;
-  if(origen==='merma'){
-    const m=Math.min(99,Math.max(0,parseFloat(mermaEl.value)||0));
-    mermaEl.value=m;
-    rendEl.value=parseFloat((100-m).toFixed(4));
-  } else {
-    const r=Math.min(100,Math.max(1,parseFloat(rendEl.value)||100));
-    rendEl.value=r;
-    mermaEl.value=parseFloat((100-r).toFixed(4));
-  }
-  updateCostoRealPreview();
-}
 function updateCostoRealPreview(){
   const costo=parseFloat(document.getElementById('inv-costo').value)||0;
   const merma=parseFloat(document.getElementById('inv-merma').value)||0;
-  const real=merma>0?costo/(1-merma/100):costo;
   const el=document.getElementById('inv-costo-real-preview');
+  if(merma<0||merma>=100){if(el)el.querySelector('span').textContent='La merma debe ser menor a 100%';return;}
+  const real=merma>0?costo/(1-merma/100):costo;
   if(el)el.querySelector('span').textContent=fmtMoney(real)+(merma>0?` (÷${((100-merma)/100).toFixed(2)})`:'');
 }
 function editInv(id){
@@ -1114,7 +1102,6 @@ function editInv(id){
   document.getElementById('inv-cantidad').value=i.cantidad!==null?i.cantidad:'';
   document.getElementById('inv-costo').value=i.costo;
   document.getElementById('inv-merma').value=i.merma||0;
-  document.getElementById('inv-rendimiento').value=parseFloat((100-(i.merma||0)).toFixed(4));
   updateCostoRealPreview();
   populateInvSelects();
   document.getElementById('inv-cat').value=i.categoria;
@@ -1123,7 +1110,7 @@ function editInv(id){
   document.getElementById('inv-proveedor-sel').value=i.proveedor;
   document.getElementById('modal-inv').classList.add('open');
 }
-async function deleteInv(id){if(!permitirEscrituraF7())return;if(!confirm('¿Eliminar?'))return;invData=invData.filter(i=>i.id!==id);renderInventario();recalcCFs();await dbDelete('inventario',id);}
+async function deleteInv(id){if(!permitirEscrituraF7())return;if(!confirm('¿Eliminar?'))return;const eliminado=await dbDelete('inventario',id);if(!eliminado)return alert('No se pudo eliminar el insumo en Supabase. El inventario en pantalla se mantiene sin cambios.');invData=invData.filter(i=>i.id!==id);renderInventario();recalcCFs();}
 
 // ── COSTOS FIJOS ───────────────────────────────────────────────────────────
 function pName(pid){const i=invData.find(x=>x.id===pid);return i?`${i.nombre} (${i.unidad})`:'—';}
@@ -1761,10 +1748,11 @@ function switchImportTab(tab){importMode=tab;document.getElementById('panel-xlsx
 function dzDrag(e,zoneId,on){e.preventDefault();document.getElementById(zoneId).classList.toggle('dragover',on);}
 function dzDropCsv(e){e.preventDefault();document.getElementById('drop-zone-csv').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)handleFile(f);}
 function dzDropXlsx(e){e.preventDefault();document.getElementById('drop-zone-xlsx').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)handleXlsx(f);}
+function parseMermaImport(valor){if(valor===undefined||valor===null||String(valor).trim()==="")return 0;const n=Number(String(valor).replace("%","").trim());if(!Number.isFinite(n)||n<0||n>=100)throw new Error("La merma importada debe ser un número entre 0 y menos de 100%.");return n;}
 function parseXlsxWorkbook(wb){
   xlsxFullData={inv:[],cf:[]};const norm=s=>String(s).toLowerCase().replace(/[^a-záéíóúñ0-9]/gi,'');let total=0;
   const invS=wb.Sheets['Inventario_Productos']||wb.Sheets[wb.SheetNames[0]];
-  if(invS){const rows=sheetToRows(invS);if(rows.length>1){const h=rows[0].map(norm);const ci={};const ck={id:['id'],nombre:['nombre','name','insumo'],categoria:['categoria','categoría','cat'],cantidad:['cantidad','qty'],unidad:['unidad','unit','um'],costo:['costo','cost','precio','price'],proveedor:['proveedor','supplier'],obs:['observaciones','obs','notas']};for(const[k,al]of Object.entries(ck))for(const a of al){const idx=h.indexOf(norm(a));if(idx>=0){ci[k]=idx;break;}}if(ci.nombre!==undefined){rows.slice(1).forEach(row=>{const nombre=String(row[ci.nombre]||'').trim();if(!nombre)return;const catRaw=String(row[ci.categoria]||'').trim().toLowerCase();xlsxFullData.inv.push({id:String(row[ci.id]||'').trim()||null,nombre,categoria:CAT_MAP[catRaw]||'carne',cantidad:ci.cantidad!==undefined?(parseFloat(row[ci.cantidad])||null):null,unidad:String(row[ci.unidad]||'').trim()||'kg',costo:ci.costo!==undefined?(parseFloat(row[ci.costo])||0):0,proveedor:String(row[ci.proveedor]||'').trim(),obs:String(row[ci.obs]||'').trim()});total++;});}}}
+  if(invS){const rows=sheetToRows(invS);if(rows.length>1){const h=rows[0].map(norm);const ci={};const ck={id:['id'],nombre:['nombre','name','insumo'],categoria:['categoria','categoría','cat'],cantidad:['cantidad','qty'],unidad:['unidad','unit','um'],costo:['costo','cost','precio','price'],merma:['merma','mermapct'],proveedor:['proveedor','supplier'],obs:['observaciones','obs','notas']};for(const[k,al]of Object.entries(ck))for(const a of al){const idx=h.indexOf(norm(a));if(idx>=0){ci[k]=idx;break;}}if(ci.nombre!==undefined){rows.slice(1).forEach(row=>{const nombre=String(row[ci.nombre]||'').trim();if(!nombre)return;const catRaw=String(row[ci.categoria]||'').trim().toLowerCase();xlsxFullData.inv.push({id:String(row[ci.id]||'').trim()||null,nombre,categoria:CAT_MAP[catRaw]||'carne',cantidad:ci.cantidad!==undefined?(parseFloat(row[ci.cantidad])||null):null,unidad:String(row[ci.unidad]||'').trim()||'kg',costo:ci.costo!==undefined?(parseFloat(row[ci.costo])||0):0,merma:ci.merma!==undefined?parseMermaImport(row[ci.merma]):0,proveedor:String(row[ci.proveedor]||'').trim(),obs:String(row[ci.obs]||'').trim()});total++;});}}}
   if(total===0){setImportStatus('err','Sin datos.');xlsxFullData=null;return;}
   setImportStatus('ok',`${xlsxFullData.inv.length} insumo${xlsxFullData.inv.length!==1?'s':''} encontrados.`);
   const prev=xlsxFullData.inv.slice(0,5);
@@ -1777,38 +1765,42 @@ function parseCSV(text){if(String(text).split(/\r?\n/).length>10001)throw new Er
   const parseRow=row=>{const cells=[];let cur='',inQ=false;for(let i=0;i<row.length;i++){const ch=row[i];if(ch==='"'){if(inQ&&row[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}else if(ch===','&&!inQ){cells.push(cur.trim());cur='';}else cur+=ch;}cells.push(cur.trim());return cells;};
   const headers=parseRow(lines[0]).map(h=>h.toLowerCase().replace(/[^a-záéíóúñ0-9]/gi,''));
   const norm=s=>s.toLowerCase().replace(/[^a-záéíóúñ0-9]/gi,'');
-  const colKeys={id:['id'],nombre:['nombre','name','insumo'],categoria:['categoria','categoría','cat'],cantidad:['cantidad','qty'],unidad:['unidad','unit','um'],costo:['costo','cost','precio','price'],proveedor:['proveedor','supplier'],obs:['observaciones','obs','notas']};
+  const colKeys={id:['id'],nombre:['nombre','name','insumo'],categoria:['categoria','categoría','cat'],cantidad:['cantidad','qty'],unidad:['unidad','unit','um'],costo:['costo','cost','precio','price'],merma:['merma','mermapct'],proveedor:['proveedor','supplier'],obs:['observaciones','obs','notas']};
   const colIdx={};for(const[key,aliases]of Object.entries(colKeys))for(const alias of aliases){const idx=headers.indexOf(norm(alias));if(idx>=0){colIdx[key]=idx;break;}}
   if(colIdx.nombre===undefined){setImportStatus('err','No se encontró columna "Nombre".');return;}
-  const valid=[];validarFilasImportacion(lines.slice(1).map(parseRow)).forEach(row=>{const nombre=(colIdx.nombre!==undefined?row[colIdx.nombre]:'').trim();if(!nombre)return;const catRaw=(colIdx.categoria!==undefined?row[colIdx.categoria]:'').trim().toLowerCase();valid.push({id:(colIdx.id!==undefined?row[colIdx.id]:'').trim()||null,nombre,categoria:CAT_MAP[catRaw]||'carne',cantidad:colIdx.cantidad!==undefined?parseFloat(row[colIdx.cantidad])||null:null,unidad:(colIdx.unidad!==undefined?row[colIdx.unidad]:'').trim()||'kg',costo:colIdx.costo!==undefined?parseFloat(row[colIdx.costo])||0:0,proveedor:(colIdx.proveedor!==undefined?row[colIdx.proveedor]:'').trim(),obs:(colIdx.obs!==undefined?row[colIdx.obs]:'').trim()});});
+  const valid=[];validarFilasImportacion(lines.slice(1).map(parseRow)).forEach(row=>{const nombre=(colIdx.nombre!==undefined?row[colIdx.nombre]:'').trim();if(!nombre)return;const catRaw=(colIdx.categoria!==undefined?row[colIdx.categoria]:'').trim().toLowerCase();valid.push({id:(colIdx.id!==undefined?row[colIdx.id]:'').trim()||null,nombre,categoria:CAT_MAP[catRaw]||'carne',cantidad:colIdx.cantidad!==undefined?parseFloat(row[colIdx.cantidad])||null:null,unidad:(colIdx.unidad!==undefined?row[colIdx.unidad]:'').trim()||'kg',costo:colIdx.costo!==undefined?parseFloat(row[colIdx.costo])||0:0,merma:colIdx.merma!==undefined?parseMermaImport(row[colIdx.merma]):0,proveedor:(colIdx.proveedor!==undefined?row[colIdx.proveedor]:'').trim(),obs:(colIdx.obs!==undefined?row[colIdx.obs]:'').trim()});});
   parsedImportRows=valid;
   setImportStatus(valid.length?'ok':'err',valid.length?`${valid.length} filas listas.`:'Sin datos válidos.');
   if(valid.length){document.getElementById('import-preview-area').innerHTML=`<div style="font-size:11px;color:var(--text2);margin:10px 0 4px;">Vista previa:</div><div class="preview-wrap"><table style="font-size:12px;width:100%"><thead><tr><th style="padding:6px 10px;background:var(--bg2);">Nombre</th><th style="padding:6px 10px;background:var(--bg2);">Cat.</th><th style="padding:6px 10px;background:var(--bg2);">Unidad</th><th style="padding:6px 10px;background:var(--bg2);">Costo</th></tr></thead><tbody>${valid.slice(0,5).map(r=>`<tr><td style="padding:5px 10px;">${escapeF7(r.nombre)}</td><td style="padding:5px 10px;">${escapeF7(capCat(r.categoria))}</td><td style="padding:5px 10px;">${escapeF7(r.unidad)}</td><td style="padding:5px 10px;text-align:right;">${fmtMoney(r.costo)}</td></tr>`).join('')}</tbody></table></div>`;document.getElementById('import-actions').style.display='block';}
 }
 async function confirmImport(){if(!permitirEscrituraF7())return;
-  if(importMode==='xlsx'&&xlsxFullData){
-    let ai=0,ui=0;
-    for(const row of xlsxFullData.inv){const ei=row.id?invData.findIndex(i=>i.id===row.id):-1;const id=row.id||(ei>=0?invData[ei].id:nextId('INS',invData));const item={id,nombre:row.nombre,categoria:row.categoria,cantidad:row.cantidad,unidad:row.unidad,costo:row.costo,merma:row.merma||0,proveedor:row.proveedor,obs:row.obs};if(ei>=0){invData[ei]=item;ui++;}else{invData.push(item);ai++;}await dbUpsert('inventario',item);}
-    closeModal('import');renderInventario();recalcCFs();setTimeout(()=>alert(`✅ Inventario: ${ai} nuevo${ai!==1?'s':''}, ${ui} actualizado${ui!==1?'s':''}.`),100);return;
+  const rows=importMode==='xlsx'&&xlsxFullData?xlsxFullData.inv:parsedImportRows;
+  if(!rows.length)return;
+  let added=0,updated=0,failed=0;
+  for(const row of rows){
+    const ei=row.id?invData.findIndex(i=>i.id===row.id):-1;
+    const id=row.id||(ei>=0?invData[ei].id:nextId('INS',invData));
+    const item={id,nombre:row.nombre,categoria:row.categoria,cantidad:row.cantidad,unidad:row.unidad,costo:row.costo,merma:row.merma??0,proveedor:row.proveedor,obs:row.obs};
+    if(!await dbUpsert('inventario',item)){failed++;continue;}
+    if(ei>=0){invData[ei]=item;updated++;}else{invData.push(item);added++;}
   }
-  if(!parsedImportRows.length)return;
-  let added=0,updated=0;
-  for(const row of parsedImportRows){const ei=row.id?invData.findIndex(i=>i.id===row.id):-1;const id=row.id||(ei>=0?invData[ei].id:nextId('INS',invData));const item={id,nombre:row.nombre,categoria:row.categoria,cantidad:row.cantidad,unidad:row.unidad,costo:row.costo,merma:row.merma||0,proveedor:row.proveedor,obs:row.obs};if(ei>=0){invData[ei]=item;updated++;}else{invData.push(item);added++;}await dbUpsert('inventario',item);}
-  closeModal('import');renderInventario();recalcCFs();setTimeout(()=>alert(`Importación: ${added} agregado${added!==1?'s':''}, ${updated} actualizado${updated!==1?'s':''}.`),100);
+  renderInventario();recalcCFs();
+  if(failed===0){closeModal('import');alert(`Importación: ${added} agregado${added!==1?'s':''}, ${updated} actualizado${updated!==1?'s':''}.`);}
+  else alert(`Importación parcial: ${added} agregado${added!==1?'s':''}, ${updated} actualizado${updated!==1?'s':''}, ${failed} no guardado${failed!==1?'s':''}. Los registros fallidos no se cambiaron en pantalla. Revisá la conexión/permisos y volvé a importar esos registros.`);
 }
 
 // ── EXPORTAR ───────────────────────────────────────────────────────────────
-function downloadTemplate(){const csv=[INV_COLS,['INS-001','Lomo de res','carne','1','kg','15000','Proveedor','Notas']].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='plantilla_inventario.csv';a.click();URL.revokeObjectURL(url);}
+function downloadTemplate(){const csv=[INV_COLS,['INS-001','Lomo de res','carne','1','kg','15000','0','Proveedor','Notas']].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='plantilla_inventario.csv';a.click();URL.revokeObjectURL(url);}
 function exportCSV(type){
   let rows,header,filename;
-  if(type==='inventario'){header=INV_COLS;rows=invData.map(i=>[i.id,i.nombre,capCat(i.categoria),i.cantidad!==null?i.cantidad:'',i.unidad,i.costo,i.proveedor,i.obs]);filename='inventario_productos.csv';}
+  if(type==='inventario'){header=INV_COLS;rows=invData.map(i=>[i.id,i.nombre,capCat(i.categoria),i.cantidad!==null?i.cantidad:'',i.unidad,i.costo,i.merma??0,i.proveedor,i.obs]);filename='inventario_productos.csv';}
   else{header=['ID','Nombre','Ingredientes','Total'];rows=cfData.map(cf=>{const items=(cf.items&&cf.items.length?cf.items:[cf.p1,cf.p2,cf.p3,cf.p4].filter(Boolean).map(id=>({id,qty:1}))).map(item=>{const i=invData.find(x=>x.id===item.id);return i?(item.qty&&item.qty!==1?item.qty+'x ':'')+i.nombre:'';}).filter(Boolean).join(', ');return[cf.id,cf.nombre,items,cf.total];});filename='costos_fijos.csv';}
   const csv=[header,...rows].map(r=>r.map(c=>`"${textoCSVSeguro(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
 }
 function exportExcel(){
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([INV_COLS,...invData.map(i=>[i.id,i.nombre,capCat(i.categoria),i.cantidad!==null?i.cantidad:'',i.unidad,i.costo,i.proveedor,i.obs])]),'Inventario_Productos');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([INV_COLS,...invData.map(i=>[i.id,i.nombre,capCat(i.categoria),i.cantidad!==null?i.cantidad:'',i.unidad,i.costo,i.merma??0,i.proveedor,i.obs])]),'Inventario_Productos');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ID','Nombre','Producto1','Producto2','Producto3','Producto4','Total'],...cfData.map(cf=>[cf.id,cf.nombre,pName(cf.p1),pName(cf.p2),pName(cf.p3),pName(cf.p4),cf.total])]),'CostosFijos');
   XLSX.writeFile(wb,'BrumasBBQ_datos.xlsx');
 }
