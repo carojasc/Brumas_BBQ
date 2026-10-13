@@ -225,7 +225,7 @@ textarea{resize:vertical;min-height:60px;}
       <button class="btn primary" onclick="openModal('inv')"><i class="ti ti-plus"></i> Agregar insumo</button>
     </div>
   </div>
-  <div class="metric-grid" id="inv-metrics"></div>
+
   <!-- Control de margen de inflación -->
   <div style="display:flex;align-items:center;gap:10px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;flex-wrap:wrap;">
     <i class="ti ti-trending-up" style="color:#854F0B;font-size:18px;flex-shrink:0;"></i>
@@ -1010,16 +1010,6 @@ function renderInventario(){
   if(margenInput&&parseFloat(margenInput.value)!==margenInflacion)margenInput.value=margenInflacion;
   const factorEl=document.getElementById('inv-margen-factor');
   if(factorEl)factorEl.textContent=(1+margenInflacion/100).toFixed(2);
-  // Los indicadores resumen el catálogo de costos; no representan existencias físicas.
-  // Valor inventario = suma de la columna Costo (₡); proyección = costo total + porcentaje configurado.
-  const valorCostos=invData.reduce((s,i)=>s+Number(i.costo||0),0);
-  const valorProyectado=valorCostos*(1+margenInflacion/100);
-  const mostrarValor=valor=>invData.length?fmtMoney(valor):'—';
-  document.getElementById('inv-metrics').innerHTML=
-    '<div class="metric"><div class="metric-label">Total insumos</div><div class="metric-value">'+invData.length+'</div></div>'+ 
-    '<div class="metric"><div class="metric-label">Valor inventario (costos)</div><div class="metric-value">'+mostrarValor(valorCostos)+'</div><div style="font-size:10px;color:var(--text2);margin-top:3px;">Suma de costos registrados</div></div>'+ 
-    '<div class="metric"><div class="metric-label">Proyección +'+margenInflacion+'% inflación</div><div class="metric-value" style="color:#854F0B;">'+mostrarValor(valorProyectado)+'</div></div>'+ 
-    '<div class="metric"><div class="metric-label">Categorías</div><div class="metric-value">'+new Set(invData.map(i=>i.categoria)).size+'</div></div>';
   // Populate category filter
   const catSel=document.getElementById('inv-filter-cat');
   if(catSel){
