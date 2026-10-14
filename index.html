@@ -308,6 +308,7 @@ textarea{resize:vertical;min-height:60px;}
     <table><thead><tr>
       <th style="width:70px">ID</th><th style="width:160px">Nombre</th>
       <th>Ingredientes</th>
+      <th style="min-width:240px">Detalle de la receta</th>
       <th style="width:100px">Total (₡)</th>
       <th style="width:110px;color:var(--text2);">Producción</th>
       <th style="width:110px;color:#854F0B;">Costo/unidad</th>
@@ -737,6 +738,7 @@ textarea{resize:vertical;min-height:60px;}
     <div class="modal-header"><span class="modal-title" id="cf-modal-title">Nueva receta</span><button class="btn sm" onclick="closeModal('cf')"><i class="ti ti-x"></i></button></div>
     <input type="hidden" id="cf-edit-id"/>
     <div class="form-group"><label class="form-label">Nombre de la receta</label><input type="text" id="cf-nombre" placeholder="Ej. Chimichurri casero"/></div>
+    <div class="form-group"><label class="form-label">Detalle de la receta / Preparación</label><textarea id="cf-detalle-receta" rows="5" placeholder="Describí cómo se prepara: pasos, tiempos, temperaturas y recomendaciones..."></textarea><div style="font-size:11px;color:var(--text2);margin-top:4px;">Este detalle es descriptivo y no modifica el cálculo de costos.</div></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <span style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;">Ingredientes</span>
       <button class="add-item-btn" onclick="addCFIngredient()"><i class="ti ti-plus" style="font-size:12px;"></i> Agregar ingrediente</button>
@@ -956,7 +958,7 @@ async function loadAllData(){
         const inv=invData.find(x=>x.id===item.id);
         return s+(inv?inv.costo*(item.qty||1):0);
       },0);
-      return{id:r.id,nombre:r.nombre,items,p1:r.p1||'',p2:r.p2||'',p3:r.p3||'',p4:r.p4||'',total:total||r.total||0,rendimiento_cantidad:r.rendimiento_cantidad,rendimiento_unidad:r.rendimiento_unidad,costo_por_unidad_rendimiento:r.costo_por_unidad_rendimiento};
+      return{id:r.id,nombre:r.nombre,detalle_receta:r.detalle_receta||'',items,p1:r.p1||'',p2:r.p2||'',p3:r.p3||'',p4:r.p4||'',total:total||r.total||0,rendimiento_cantidad:r.rendimiento_cantidad,rendimiento_unidad:r.rendimiento_unidad,costo_por_unidad_rendimiento:r.costo_por_unidad_rendimiento};
     });
     menuData=(r3.data||[]).map(r=>({id:r.id,nombre:r.nombre,descripcion:r.descripcion||'',combos:r.combos||[]}));
     const lc=r4.data||[];
@@ -1004,7 +1006,7 @@ function showSection(name,btn){
 
 function openModal(type){
   if(type==='inv'){document.getElementById('inv-edit-id').value='';document.getElementById('inv-modal-title').textContent='Agregar insumo';['inv-nombre','inv-obs'].forEach(id=>document.getElementById(id).value='');document.getElementById('inv-costo').value='';document.getElementById('inv-cantidad').value='';document.getElementById('inv-merma').value='0';document.getElementById('inv-costo-real-preview').querySelector('span').textContent='₡0';populateInvSelects();}
-  if(type==='cf'){document.getElementById('cf-edit-id').value='';document.getElementById('cf-modal-title').textContent='Nueva receta';document.getElementById('cf-nombre').value='';document.getElementById('cf-rend-cantidad').value='';document.getElementById('cf-rend-unidad').value='unidades';document.getElementById('cf-costo-por-unidad').textContent='₡—';document.getElementById('cf-ingredients-container').innerHTML='';cfPickerCounter=0;buildCFIngredients();document.getElementById('cf-total').textContent='₡0';}
+  if(type==='cf'){document.getElementById('cf-edit-id').value='';document.getElementById('cf-modal-title').textContent='Nueva receta';document.getElementById('cf-nombre').value='';document.getElementById('cf-detalle-receta').value='';document.getElementById('cf-rend-cantidad').value='';document.getElementById('cf-rend-unidad').value='unidades';document.getElementById('cf-costo-por-unidad').textContent='₡—';document.getElementById('cf-ingredients-container').innerHTML='';cfPickerCounter=0;buildCFIngredients();document.getElementById('cf-total').textContent='₡0';}
   if(type==='mn'){document.getElementById('mn-edit-id').value='';document.getElementById('mn-modal-title').textContent='Nuevo menú';document.getElementById('mn-nombre').value='';document.getElementById('mn-desc').value='';document.getElementById('mn-combos-container').innerHTML='';document.getElementById('mn-total-costo').textContent='₡0';addComboBlock();}
   document.getElementById('modal-'+type).classList.add('open');
 }
@@ -1224,6 +1226,7 @@ function editCF(id){
   document.getElementById('cf-edit-id').value=cf.id;
   document.getElementById('cf-modal-title').textContent='Editar receta';
   document.getElementById('cf-nombre').value=cf.nombre;
+  document.getElementById('cf-detalle-receta').value=cf.detalle_receta||'';
   document.getElementById('cf-rend-cantidad').value=cf.rendimiento_cantidad||'';
   document.getElementById('cf-rend-unidad').value=cf.rendimiento_unidad||'unidades';
   buildCFIngredients(cf);
@@ -1817,7 +1820,7 @@ function downloadTemplate(){const csv=[INV_COLS,['INS-001','Lomo de res','carne'
 function exportCSV(type){
   let rows,header,filename;
   if(type==='inventario'){header=INV_COLS;rows=invData.map(i=>[i.id,i.nombre,capCat(i.categoria),i.cantidad!==null?i.cantidad:'',i.unidad,i.costo,i.merma??0,i.proveedor,i.obs]);filename='inventario_productos.csv';}
-  else{header=['ID','Nombre','Ingredientes','Total'];rows=cfData.map(cf=>{const items=(cf.items&&cf.items.length?cf.items:[cf.p1,cf.p2,cf.p3,cf.p4].filter(Boolean).map(id=>({id,qty:1}))).map(item=>{const i=invData.find(x=>x.id===item.id);return i?(item.qty&&item.qty!==1?item.qty+'x ':'')+i.nombre:'';}).filter(Boolean).join(', ');return[cf.id,cf.nombre,items,cf.total];});filename='costos_fijos.csv';}
+  else{header=['ID','Nombre','Ingredientes','Detalle de la receta','Total'];rows=cfData.map(cf=>{const items=(cf.items&&cf.items.length?cf.items:[cf.p1,cf.p2,cf.p3,cf.p4].filter(Boolean).map(id=>({id,qty:1}))).map(item=>{const i=invData.find(x=>x.id===item.id);return i?(item.qty&&item.qty!==1?item.qty+'x ':'')+i.nombre:'';}).filter(Boolean).join(', ');return[cf.id,cf.nombre,items,cf.detalle_receta||'',cf.total];});filename='costos_fijos.csv';}
   const csv=[header,...rows].map(r=>r.map(c=>`"${textoCSVSeguro(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
 }
@@ -2335,7 +2338,7 @@ async function saveCostoFijo(){
     const editId=valorF7('cf-edit-id'),nombre=valorF7('cf-nombre').trim();if(!nombre)throw new Error('Ingresá el nombre de la receta.');
     const rendimiento_cantidad=numeroCosto(valorF7('cf-rend-cantidad'),'Rendimiento de receta',true),items=itemsEditorReceta().map(x=>({...x,qty:numeroCosto(x.qty,'Cantidad de ingrediente',true)}));
     if(!items.length)throw new Error('Agregá al menos un ingrediente.');
-    const cf={id:editId||nextId('CF',cfData),nombre,items,rendimiento_cantidad,rendimiento_unidad:valorF7('cf-rend-unidad'),p1:items[0]?.id||'',p2:items[1]?.id||'',p3:items[2]?.id||'',p4:items[3]?.id||''};
+    const cf={id:editId||nextId('CF',cfData),nombre,detalle_receta:valorF7('cf-detalle-receta').trim(),items,rendimiento_cantidad,rendimiento_unidad:valorF7('cf-rend-unidad'),p1:items[0]?.id||'',p2:items[1]?.id||'',p3:items[2]?.id||'',p4:items[3]?.id||''};
     cf.total=costoRecetaActual(cf);cf.costo_por_unidad_rendimiento=cf.total/rendimiento_cantidad;
     const {error}=await sbClient.from('costos_fijos').upsert(cf,{onConflict:'id'});if(error)throw error;
     const i=cfData.findIndex(x=>x.id===cf.id);if(i>=0)cfData[i]=cf;else cfData.push(cf);closeModal('cf');recalcCFs();renderMenus();setSyncStatus('ok','Receta guardada');
@@ -2347,8 +2350,8 @@ function renderCF(){
   tbody.innerHTML=cfData.map(cf=>{let total,error='';try{total=costoRecetaActual(cf);}catch(e){error=e.message;}
     const id=encodeURIComponent(cf.id),unit=Number(cf.rendimiento_cantidad)>0&&!error?total/Number(cf.rendimiento_cantidad):null;
     if(!error){cf.total=total;cf.costo_por_unidad_rendimiento=unit;}
-    return `<tr><td>${escapeF7(cf.id)}</td><td>${escapeF7(cf.nombre)}</td><td>${(cf.items||[]).map(x=>escapeF7((itemLabel(x.id)||x.id)+' × '+x.qty+(x.unidad?' '+x.unidad:''))).join('<br>')}</td><td>${error?escapeF7(error):fmtMoney(total)}</td><td>${cf.rendimiento_cantidad?escapeF7(cf.rendimiento_cantidad+' '+cf.rendimiento_unidad):'Lote sin rendimiento'}</td><td>${unit==null?'—':monedaPrecisa(unit)+' / '+escapeF7(cf.rendimiento_unidad)}</td><td><button class="btn sm" data-receta="${id}" onclick="editCF(decodeURIComponent(this.dataset.receta))">Editar</button><button class="btn sm danger" data-receta="${id}" onclick="deleteCF(decodeURIComponent(this.dataset.receta))">Eliminar</button></td></tr>`;
-  }).join('')||'<tr><td colspan="7"><div class="empty">Sin recetas aún.</div></td></tr>';
+    return `<tr><td>${escapeF7(cf.id)}</td><td>${escapeF7(cf.nombre)}</td><td>${(cf.items||[]).map(x=>escapeF7((itemLabel(x.id)||x.id)+' × '+x.qty+(x.unidad?' '+x.unidad:''))).join('<br>')}</td><td style="white-space:pre-wrap;min-width:240px;max-width:420px">${escapeF7(cf.detalle_receta||'—')}</td><td>${error?escapeF7(error):fmtMoney(total)}</td><td>${cf.rendimiento_cantidad?escapeF7(cf.rendimiento_cantidad+' '+cf.rendimiento_unidad):'Lote sin rendimiento'}</td><td>${unit==null?'—':monedaPrecisa(unit)+' / '+escapeF7(cf.rendimiento_unidad)}</td><td><button class="btn sm" data-receta="${id}" onclick="editCF(decodeURIComponent(this.dataset.receta))">Editar</button><button class="btn sm danger" data-receta="${id}" onclick="deleteCF(decodeURIComponent(this.dataset.receta))">Eliminar</button></td></tr>`;
+  }).join('')||'<tr><td colspan="8"><div class="empty">Sin recetas aún.</div></td></tr>';
 }
 
 // Seguridad: codificación según el contexto y acceso cerrado por defecto.
