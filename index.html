@@ -1885,7 +1885,7 @@ function convertirCantidad(cantidad,desde,hasta){
   return n*ua[1]/ub[1];
 }
 function normalizarUnidad(u){
-  const v=String(u||'').trim().toLowerCase().replace(/\s+/g,' ');
+  const v=String(u||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
   return ({
     mg:'mg',miligramo:'mg',miligramos:'mg',
     g:'g',gr:'g',gramo:'g',gramos:'g',
@@ -1895,9 +1895,9 @@ function normalizarUnidad(u){
     l:'l',litro:'l',litros:'l',
     'fl oz':'fl oz','floz':'fl oz','onza liquida':'fl oz','onzas liquidas':'fl oz',
     unidad:'unidades',und:'unidades',ud:'unidades',unidades:'unidades',
-    porcion:'porciones','porción':'porciones',porciones:'porciones',
-    'unidad original / lote completo':'','unidad original / lote':'','lote':''
-  })[v]||v;
+    porcion:'porciones',porciones:'porciones',
+    'unidad original / lote completo':'','unidad original / lote':'','lote':'','lotes':''
+  })[v]??v;
 }
 function costoReal(inv){
   const merma=numeroCosto(inv.merma??0,'Merma de '+inv.nombre);
@@ -1925,8 +1925,9 @@ function costearItem(item,visitados=[]){
   }
   if(!cf)throw new Error('No se encontró el insumo o receta '+it.id+'.');
   const total=costoRecetaActual(cf,visitados);
-  // Registros anteriores sin unidad representan lotes completos, como antes.
-  if(!it.unidad)return {id:cf.id,nombre:cf.nombre,cantidad:qty,unidad:'lotes',costo:total*qty};
+  // Una unidad vacía o equivalente a “lote completo” significa usar lotes enteros.
+  // Se normaliza primero porque el selector puede guardar una etiqueta descriptiva.
+  if(!normalizarUnidad(it.unidad))return {id:cf.id,nombre:cf.nombre,cantidad:qty,unidad:'lotes',costo:total*qty};
   const rendimiento=numeroCosto(cf.rendimiento_cantidad,'Rendimiento de '+cf.nombre,true);
   const cantidad=convertirCantidad(qty,it.unidad,cf.rendimiento_unidad);
   return {id:cf.id,nombre:cf.nombre,cantidad,unidad:cf.rendimiento_unidad,costo:total*cantidad/rendimiento};
@@ -2155,7 +2156,7 @@ function expandirInsumos(item,factor=1,visitados=[],recetas=new Map()){
   const totalReceta=costoRecetaActual(cf);
   recetas.set(cf.id,{...copiarDatos(cf),total:totalReceta,costo_por_unidad_rendimiento:Number(cf.rendimiento_cantidad)>0?totalReceta/Number(cf.rendimiento_cantidad):null});
   let lotes=cantidad;
-  if(it.unidad)lotes=convertirCantidad(cantidad,it.unidad,cf.rendimiento_unidad)/numeroCosto(cf.rendimiento_cantidad,'Rendimiento de '+cf.nombre,true);
+  if(normalizarUnidad(it.unidad))lotes=convertirCantidad(cantidad,it.unidad,cf.rendimiento_unidad)/numeroCosto(cf.rendimiento_cantidad,'Rendimiento de '+cf.nombre,true);
   if(!cf.items?.length)return [{id:cf.id,nombre:cf.nombre,unidad:'lotes',proveedor:'',neta:lotes,compra:lotes,merma:0,costo_compra:numeroCosto(cf.total??0,'Costo de receta'),costo:lotes*Number(cf.total||0),tipo:'receta_sin_desglose'}];
   const filas=cf.items.flatMap(x=>expandirInsumos(x,lotes,[...visitados,cf.id],recetas));
   const adicionales=costosAdicionalesReceta(cf)*lotes;
