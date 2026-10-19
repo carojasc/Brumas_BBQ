@@ -705,9 +705,9 @@ textarea{resize:vertical;min-height:60px;}
       <div class="form-group"><label class="form-label">Categoría</label><select id="inv-cat"></select></div>
     </div>
     <div class="form-row-3">
-      <div class="form-group"><label class="form-label">Cantidad</label><input type="number" id="inv-cantidad" placeholder="1" min="0" step="0.01"/></div>
-      <div class="form-group"><label class="form-label">Unidad</label><select id="inv-unidad" onchange="document.getElementById('inv-hint-unit').textContent=this.value"></select></div>
-      <div class="form-group"><label class="form-label">Costo (₡)</label><input type="number" id="inv-costo" placeholder="0" oninput="updateCostoRealPreview()"/></div>
+      <div class="form-group"><label class="form-label">Contenido del empaque (en la unidad seleccionada)</label><input type="number" id="inv-cantidad" placeholder="1" min="0.000001" step="any" oninput="updateCostoRealPreview()"/></div>
+      <div class="form-group"><label class="form-label">Unidad</label><select id="inv-unidad" onchange="document.getElementById('inv-hint-unit').textContent=this.value;updateCostoRealPreview()"></select></div>
+      <div class="form-group"><label class="form-label">Precio del empaque (₡)</label><input type="number" id="inv-costo" placeholder="0" oninput="updateCostoRealPreview()"/></div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -725,7 +725,7 @@ textarea{resize:vertical;min-height:60px;}
         <span>₡0</span><span style="font-size:11px;font-weight:400;color:var(--text2);">Costo compra ÷ rendimiento</span>
       </div>
     </div>
-    <div class="form-group"><div style="background:var(--bg2);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:var(--text2);"><i class="ti ti-info-circle" style="font-size:14px;vertical-align:-2px;margin-right:4px;"></i>Costo por <strong id="inv-hint-unit">unid</strong>.</div></div>
+    <div class="form-group"><div style="background:var(--bg2);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:var(--text2);"><i class="ti ti-info-circle" style="font-size:14px;vertical-align:-2px;margin-right:4px;"></i>Costo por <strong id="inv-hint-unit">unid</strong> de contenido. El precio se divide entre el contenido del empaque.</div></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Proveedor</label><select id="inv-proveedor-sel"></select></div>
       <div class="form-group"><label class="form-label">Observaciones</label><input type="text" id="inv-obs" placeholder="Notas..."/></div>
@@ -1020,7 +1020,7 @@ function showSection(name,btn){
 }
 
 function openModal(type){
-  if(type==='inv'){document.getElementById('inv-edit-id').value='';document.getElementById('inv-modal-title').textContent='Agregar insumo';['inv-nombre','inv-obs'].forEach(id=>document.getElementById(id).value='');document.getElementById('inv-costo').value='';document.getElementById('inv-cantidad').value='';document.getElementById('inv-merma').value='0';document.getElementById('inv-rendimiento').value='100';document.getElementById('inv-costo-real-preview').querySelector('span').textContent='₡0';populateInvSelects();}
+  if(type==='inv'){document.getElementById('inv-edit-id').value='';document.getElementById('inv-modal-title').textContent='Agregar insumo';['inv-nombre','inv-obs'].forEach(id=>document.getElementById(id).value='');document.getElementById('inv-costo').value='';document.getElementById('inv-cantidad').value='1';document.getElementById('inv-merma').value='0';document.getElementById('inv-rendimiento').value='100';document.getElementById('inv-costo-real-preview').querySelector('span').textContent='₡0';populateInvSelects();}
   if(type==='cf'){document.getElementById('cf-edit-id').value='';document.getElementById('cf-modal-title').textContent='Nueva receta';document.getElementById('cf-nombre').value='';document.getElementById('cf-detalle-receta').value='';['cf-mano-obra','cf-combustible','cf-empaque','cf-otros-costos'].forEach(id=>document.getElementById(id).value='0');document.getElementById('cf-margen-objetivo').value='30';document.getElementById('cf-rend-cantidad').value='';document.getElementById('cf-rend-unidad').value='unidades';document.getElementById('cf-costo-por-unidad').textContent='₡—';document.getElementById('cf-precio-sugerido').textContent='₡—';document.getElementById('cf-ingredients-container').innerHTML='';cfPickerCounter=0;buildCFIngredients();document.getElementById('cf-total').textContent='₡0';}
   if(type==='mn'){document.getElementById('mn-edit-id').value='';document.getElementById('mn-modal-title').textContent='Nuevo menú';document.getElementById('mn-nombre').value='';document.getElementById('mn-desc').value='';document.getElementById('mn-combos-container').innerHTML='';document.getElementById('mn-total-costo').textContent='₡0';addComboBlock();}
   document.getElementById('modal-'+type).classList.add('open');
@@ -1145,11 +1145,13 @@ function syncMermaRendimiento(origen){
   updateCostoRealPreview();
 }
 function updateCostoRealPreview(){
-  const costo=parseFloat(document.getElementById('inv-costo').value)||0;
+  const precio=parseFloat(document.getElementById('inv-costo').value)||0;
+  const contenido=parseFloat(document.getElementById('inv-cantidad').value)||0;
   const merma=parseFloat(document.getElementById('inv-merma').value)||0;
-  const real=merma>0?costo/(1-merma/100):costo;
+  const base=contenido>0?precio/contenido:0;
+  const real=merma>0?base/(1-merma/100):base;
   const el=document.getElementById('inv-costo-real-preview');
-  if(el)el.querySelector('span').textContent=fmtMoney(real)+(merma>0?` (÷${((100-merma)/100).toFixed(2)})`:'');
+  if(el)el.querySelector('span').textContent=fmtMoney(real)+(contenido>0?` por ${document.getElementById('inv-unidad').value} (₡${precio.toLocaleString('es-CR')} ÷ ${contenido})`:' — ingresá el contenido del empaque');
 }
 function editInv(id){
   const i=invData.find(x=>x.id===id);if(!i)return;
@@ -1885,7 +1887,7 @@ function convertirCantidad(cantidad,desde,hasta){
   return n*ua[1]/ub[1];
 }
 function normalizarUnidad(u){
-  const v=String(u||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+  const v=String(u||'').trim().toLowerCase().replace(/\s+/g,' ');
   return ({
     mg:'mg',miligramo:'mg',miligramos:'mg',
     g:'g',gr:'g',gramo:'g',gramos:'g',
@@ -1895,14 +1897,16 @@ function normalizarUnidad(u){
     l:'l',litro:'l',litros:'l',
     'fl oz':'fl oz','floz':'fl oz','onza liquida':'fl oz','onzas liquidas':'fl oz',
     unidad:'unidades',und:'unidades',ud:'unidades',unidades:'unidades',
-    porcion:'porciones',porciones:'porciones',
-    'unidad original / lote completo':'','unidad original / lote':'','lote':'','lotes':''
-  })[v]??v;
+    porcion:'porciones','porción':'porciones',porciones:'porciones',
+    'unidad original / lote completo':'','unidad original / lote':'','lote':''
+  })[v]||v;
 }
 function costoReal(inv){
   const merma=numeroCosto(inv.merma??0,'Merma de '+inv.nombre);
   if(merma>=100)throw new Error('La merma de '+inv.nombre+' debe ser menor a 100%.');
-  return numeroCosto(inv.costo,'Costo de '+inv.nombre)/(1-merma/100);
+  const precioEmpaque=numeroCosto(inv.costo,'Precio del empaque de '+inv.nombre);
+  const contenido=numeroCosto(inv.cantidad??1,'Contenido del empaque de '+inv.nombre,true);
+  return (precioEmpaque/contenido)/(1-merma/100);
 }
 function costoIngredientesReceta(cf,visitados=[]){
   if(visitados.includes(cf.id))throw new Error('Hay una referencia circular en la receta '+cf.nombre+'.');
@@ -1925,9 +1929,8 @@ function costearItem(item,visitados=[]){
   }
   if(!cf)throw new Error('No se encontró el insumo o receta '+it.id+'.');
   const total=costoRecetaActual(cf,visitados);
-  // Una unidad vacía o equivalente a “lote completo” significa usar lotes enteros.
-  // Se normaliza primero porque el selector puede guardar una etiqueta descriptiva.
-  if(!normalizarUnidad(it.unidad))return {id:cf.id,nombre:cf.nombre,cantidad:qty,unidad:'lotes',costo:total*qty};
+  // Registros anteriores sin unidad representan lotes completos, como antes.
+  if(!it.unidad)return {id:cf.id,nombre:cf.nombre,cantidad:qty,unidad:'lotes',costo:total*qty};
   const rendimiento=numeroCosto(cf.rendimiento_cantidad,'Rendimiento de '+cf.nombre,true);
   const cantidad=convertirCantidad(qty,it.unidad,cf.rendimiento_unidad);
   return {id:cf.id,nombre:cf.nombre,cantidad,unidad:cf.rendimiento_unidad,costo:total*cantidad/rendimiento};
@@ -2148,15 +2151,15 @@ function expandirInsumos(item,factor=1,visitados=[],recetas=new Map()){
   const inv=invData.find(x=>x.id===it.id);
   if(inv){
     const neta=convertirCantidad(cantidad,it.unidad||inv.unidad,inv.unidad);
-    const costoUnitario=costoReal(inv),merma=Number(inv.merma??0),compra=neta/(1-merma/100);
-    return [{id:inv.id,nombre:inv.nombre,unidad:inv.unidad,proveedor:proveedorVisible(inv.proveedor),neta,compra,merma,costo_compra:Number(inv.costo),costo:neta*costoUnitario,tipo:'insumo'}];
+    const costoUnitarioCompra=numeroCosto(inv.costo,'Precio del empaque de '+inv.nombre)/numeroCosto(inv.cantidad??1,'Contenido del empaque de '+inv.nombre,true),costoUnitario=costoReal(inv),merma=Number(inv.merma??0),compra=neta/(1-merma/100);
+    return [{id:inv.id,nombre:inv.nombre,unidad:inv.unidad,proveedor:proveedorVisible(inv.proveedor),neta,compra,merma,costo_compra:costoUnitarioCompra,costo:neta*costoUnitario,tipo:'insumo'}];
   }
   const cf=cfData.find(x=>x.id===it.id);if(!cf)throw new Error('No se encontró el insumo o receta '+it.id+'.');
   if(visitados.includes(cf.id))throw new Error('Referencia circular en '+cf.nombre+'.');
   const totalReceta=costoRecetaActual(cf);
   recetas.set(cf.id,{...copiarDatos(cf),total:totalReceta,costo_por_unidad_rendimiento:Number(cf.rendimiento_cantidad)>0?totalReceta/Number(cf.rendimiento_cantidad):null});
   let lotes=cantidad;
-  if(normalizarUnidad(it.unidad))lotes=convertirCantidad(cantidad,it.unidad,cf.rendimiento_unidad)/numeroCosto(cf.rendimiento_cantidad,'Rendimiento de '+cf.nombre,true);
+  if(it.unidad)lotes=convertirCantidad(cantidad,it.unidad,cf.rendimiento_unidad)/numeroCosto(cf.rendimiento_cantidad,'Rendimiento de '+cf.nombre,true);
   if(!cf.items?.length)return [{id:cf.id,nombre:cf.nombre,unidad:'lotes',proveedor:'',neta:lotes,compra:lotes,merma:0,costo_compra:numeroCosto(cf.total??0,'Costo de receta'),costo:lotes*Number(cf.total||0),tipo:'receta_sin_desglose'}];
   const filas=cf.items.flatMap(x=>expandirInsumos(x,lotes,[...visitados,cf.id],recetas));
   const adicionales=costosAdicionalesReceta(cf)*lotes;
