@@ -778,10 +778,14 @@ textarea{resize:vertical;min-height:60px;}
           <select id="cf-rend-unidad" onchange="updateCFCostoPorUnidad()">
             <option value="unidades">Unidades</option>
             <option value="porciones">Porciones</option>
-            <option value="gramos">Gramos</option>
-            <option value="kg">Kilogramos</option>
-            <option value="ml">Mililitros</option>
-            <option value="litros">Litros</option>
+            <option value="mg">Miligramos (mg)</option>
+            <option value="gramos">Gramos (g)</option>
+            <option value="kg">Kilogramos (kg)</option>
+            <option value="oz">Onzas de peso (oz)</option>
+            <option value="lb">Libras (lb)</option>
+            <option value="ml">Mililitros (ml)</option>
+            <option value="litros">Litros (L)</option>
+            <option value="fl oz">Onzas líquidas (fl oz)</option>
           </select>
         </div>
         <div class="form-group">
@@ -1188,7 +1192,7 @@ function addCFIngredient(value='',qty=1,unidad=''){
       </div>
     </div>
     <input type="number" class="cf-item-qty" value="${escapeF7(qty)}" min="0.001" step="0.001" style="text-align:right;" onchange="updateCFTotal()"/>
-    <select class="cf-item-unidad" aria-label="Unidad del ingrediente" onchange="updateCFTotal()">${[['','Unidad original / lote'],['kg','kg'],['g','g'],['L','L'],['ml','ml'],['unidades','unidades'],['porciones','porciones']].map(([k,v])=>`<option value="${k}" ${k===unidad?'selected':''}>${v}</option>`).join('')}</select>
+    <select class="cf-item-unidad" aria-label="Unidad del ingrediente" onchange="updateCFTotal()">${[['','Unidad original / lote'],['mg','mg'],['g','g'],['kg','kg'],['oz','oz (peso)'],['lb','lb'],['L','L'],['ml','ml'],['fl oz','fl oz (volumen)'],['unidades','unidades'],['porciones','porciones']].map(([k,v])=>`<option value="${k}" ${k===unidad?'selected':''}>${v}</option>`).join('')}</select>
     <span class="item-subtotal" style="font-size:11px;color:var(--green);text-align:right;padding:8px 4px;white-space:nowrap;">₡0</span>
     <button class="btn xs danger" onclick="this.closest('.cf-ing-row').remove();updateCFTotal()"><i class="ti ti-x"></i></button>`;
   cont.appendChild(row);
@@ -1868,20 +1872,32 @@ function convertirCantidad(cantidad,desde,hasta){
   const n=numeroCosto(cantidad,'Cantidad'),a=normalizarUnidad(desde),b=normalizarUnidad(hasta);
   if(!a||!b)throw new Error('Falta definir la unidad de origen o destino. Seleccioná unidades compatibles.');
   if(a===b)return n;
+  // Factores base: masa en gramos, volumen en mililitros. oz = onza de masa;
+  // fl oz = onza líquida estadounidense. Nunca se mezclan masa y volumen.
   const unidades={
-    'g':['masa',1],'kg':['masa',1000],
-    'ml':['volumen',1],'l':['volumen',1000],'L':['volumen',1000],
+    'mg':['masa',0.001],'g':['masa',1],'kg':['masa',1000],
+    'oz':['masa',28.349523125],'lb':['masa',453.59237],
+    'ml':['volumen',1],'l':['volumen',1000],'fl oz':['volumen',29.5735295625],
     'unidades':['conteo',1],'porciones':['porcion',1]
   };
   const ua=unidades[a],ub=unidades[b];
-  if(!ua||!ub||ua[0]!==ub[0])throw new Error('No se puede convertir '+desde+' a '+hasta+'. Usá unidades compatibles o seleccioná “Unidad original / lote” cuando corresponda.');
+  if(!ua||!ub||ua[0]!==ub[0])throw new Error('No se puede convertir '+desde+' a '+hasta+'. Usá unidades compatibles (oz = peso; fl oz = volumen) o seleccioná “Unidad original / lote” cuando corresponda.');
   return n*ua[1]/ub[1];
 }
 function normalizarUnidad(u){
-  const v=String(u||'').trim().toLowerCase();
-  // Preservar L mayúscula como litro
-  if(String(u||'').trim()==='L')return 'L';
-  return ({gramo:'g',gramos:'g',kilogramo:'kg',kilogramos:'kg',litro:'l',litros:'l',mililitro:'ml',mililitros:'ml',unidad:'unidades',und:'unidades',ud:'unidades',porcion:'porciones','porción':'porciones','unidad original / lote completo':'','lote':''})[v]||v;
+  const v=String(u||'').trim().toLowerCase().replace(/\s+/g,' ');
+  return ({
+    mg:'mg',miligramo:'mg',miligramos:'mg',
+    g:'g',gr:'g',gramo:'g',gramos:'g',
+    kg:'kg',kilo:'kg',kilos:'kg',kilogramo:'kg',kilogramos:'kg',
+    oz:'oz',onza:'oz',onzas:'oz',lb:'lb',lbs:'lb',libra:'lb',libras:'lb',
+    ml:'ml',mililitro:'ml',mililitros:'ml',
+    l:'l',litro:'l',litros:'l',
+    'fl oz':'fl oz','floz':'fl oz','onza liquida':'fl oz','onzas liquidas':'fl oz',
+    unidad:'unidades',und:'unidades',ud:'unidades',unidades:'unidades',
+    porcion:'porciones','porción':'porciones',porciones:'porciones',
+    'unidad original / lote completo':'','unidad original / lote':'','lote':''
+  })[v]||v;
 }
 function costoReal(inv){
   const merma=numeroCosto(inv.merma??0,'Merma de '+inv.nombre);
