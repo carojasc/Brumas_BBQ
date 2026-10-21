@@ -205,6 +205,14 @@ textarea{resize:vertical;min-height:60px;}
 .f8-check{display:flex;gap:8px;align-items:center;margin:12px 0}.f8-check input{width:auto}.f8-total{font-weight:600;text-align:right;margin-top:12px}
 #dashboard-content h3{margin:22px 0 10px}#dashboard-content .metric-value{font-size:22px}#lc-tabla th,#lc-tabla td{white-space:normal}
 @media(max-width:600px){.cf-ing-row{grid-template-columns:1fr 70px!important}.cf-ing-row .item-picker{grid-column:1/-1}.f8-modal{padding:14px!important}.hist-card{flex-wrap:wrap;gap:10px}.hist-actions{flex-wrap:wrap}}
+
+/* Costos fijos: búsqueda refinada y alineada con la identidad Brumas */
+.cf-search-panel{display:flex;align-items:center;justify-content:space-between;gap:22px;margin:0 0 16px;padding:18px 20px;border:1px solid rgba(216,90,48,.2);border-radius:14px;background:linear-gradient(125deg,#211b19,#30211d 70%,#3b211b);box-shadow:0 8px 22px rgba(36,20,15,.08)}
+.cf-search-copy{display:flex;flex-direction:column;gap:4px;min-width:180px}.cf-search-kicker{font-size:10px;letter-spacing:1.7px;font-weight:700;color:#ff9a73}.cf-search-copy label{font-size:16px;font-weight:600;color:#fff}.cf-search-copy small{font-size:12px;line-height:1.45;color:#c8b9b2}
+.cf-search-control{display:flex;align-items:center;gap:10px;flex:1;max-width:500px;min-width:230px;height:48px;padding:0 13px;border:1px solid rgba(255,190,160,.28);border-radius:10px;background:rgba(10,8,7,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);transition:border-color .2s,box-shadow .2s}
+.cf-search-control:focus-within{border-color:#ff7950;box-shadow:0 0 0 3px rgba(255,100,55,.14)}.cf-search-control>i{font-size:19px;color:#ff9069;flex-shrink:0}.cf-search-control input#cf-busqueda{width:100%;min-width:0;height:100%;border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;color:#fff!important;font:500 13px var(--font);padding:0!important}.cf-search-control input#cf-busqueda::placeholder{color:#a99b94}.cf-search-control input#cf-busqueda::-webkit-search-cancel-button{filter:grayscale(1) brightness(2);cursor:pointer}.cf-search-control kbd{white-space:nowrap;border:1px solid rgba(255,255,255,.16);border-radius:5px;padding:4px 7px;color:#c6b8b1;font:10px var(--font);background:rgba(255,255,255,.04)}
+@media(max-width:650px){.cf-search-panel{align-items:stretch;flex-direction:column;gap:13px;padding:15px}.cf-search-control{max-width:none;min-width:0;width:100%}}
+
 </style>
 </head>
 <body>
@@ -304,6 +312,10 @@ textarea{resize:vertical;min-height:60px;}
       <button class="btn primary" onclick="openModal('cf')"><i class="ti ti-plus"></i> Nueva receta</button>
     </div>
   </div>
+  <div class="cf-search-panel">
+    <div class="cf-search-copy"><span class="cf-search-kicker">BÚSQUEDA RÁPIDA</span><label for="cf-busqueda">Encontrá una receta</label><small>Buscá por nombre para localizar su costo y rendimiento.</small></div>
+    <div class="cf-search-control"><i class="ti ti-search" aria-hidden="true"></i><input id="cf-busqueda" type="search" placeholder="Ej. Chimichurri, postre banano..." autocomplete="off" oninput="renderCF()"/><kbd>Buscar</kbd></div>
+  </div>
   <div class="table-wrap">
     <table><thead><tr>
       <th style="width:70px">ID</th><th style="width:160px">Nombre</th>
@@ -395,6 +407,7 @@ textarea{resize:vertical;min-height:60px;}
         <p id="f7-advertencias" class="f7-error" role="status"></p><div id="cot-resumen" aria-live="polite"><div class="empty"><i class="ti ti-calculator"></i>Completá los datos</div></div>
         <div id="cot-actions" style="display:none;margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn success" onclick="guardarCotizacion()"><i class="ti ti-device-floppy"></i> Guardar cotización</button>
+          <button class="btn primary" onclick="generarCotizacionPDF()"><i class="ti ti-file-type-pdf"></i> Generar PDF para cliente</button>
           <button class="btn" onclick="abrirCompraCotizacion()">Lista de compra</button><button class="btn" onclick="exportarCotizacionExcel()">Exportar Excel</button><button class="btn" onclick="exportCotizacion()"><i class="ti ti-download"></i> Exportar CSV</button>
         </div>
       </div>
@@ -2092,6 +2105,40 @@ async function guardarCotizacion(){
     cotizacionEditando=data.id;cotizacionRevisionF8=data.revision??null;renderDashboard();document.getElementById('f7-titulo').textContent='Editar cotización';setSyncStatus('ok','Sincronizado');renderHistorial();alert('Cotización guardada correctamente.');
   }catch(e){setSyncStatus('error','No se guardó');alert('No se pudo guardar: '+e.message);}finally{guardandoF7=false;}
 }
+function generarCotizacionPDF(){
+  try{
+    const cliente=valorF7('c-cliente').trim();
+    if(!cliente)throw new Error('Ingresá el nombre del cliente antes de generar la cotización.');
+    const entrada=leerCotizacionF7(),r=calcularCostoEvento(entrada);
+    const menu=menuData.find(m=>m.id===entrada.ingredientes.menu_id);
+    const menuNombre=entrada.ingredientes.menu_nombre||menu?.nombre||'Menú por definir';
+    const logo=document.querySelector('.login-logo img')?.src||'';
+    const esc=escapeF7;
+    const fechaEvento=entrada.fecha||valorF7('c-fecha')||'Por confirmar';
+    const fechaCotizacion=fechaLocalEvento();
+    const personas=r.produccion.personas;
+    const precio= r.rentabilidad.precioPersona;
+    const combos=(menu?.combos||[]).map(c=>{
+      const nombre=esc(c.nombre||c.tipo||'Preparación');
+      const labels=(c.items||[]).map(it=>{
+        const found=invData.find(x=>x.id===(typeof it==='object'?it.id:it))||cfData.find(x=>x.id===(typeof it==='object'?it.id:it));
+        return found?.nombre||'';
+      }).filter(Boolean);
+      const items=labels.length?`<p class="dish-detail">${labels.map(esc).join(' · ')}</p>`:'';
+      return `<article class="dish"><div class="dish-number">${String((menu?.combos||[]).indexOf(c)+1).padStart(2,'0')}</div><div class="dish-copy"><h3>${nombre}</h3>${items}</div></article>`;
+    }).join('');
+    const descripcion=menu?.descripcion?`<p class="menu-description">${esc(menu.descripcion)}</p>`:'';
+    const notas=valorF7('c-notas').trim();
+    const safeNotas=notas?`<div class="notes-client"><h3>Notas adicionales</h3><p>${esc(notas).replace(/\n/g,'<br>')}</p></div>`:'';
+    const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cotización Brumas BBQ - ${esc(cliente)}</title><style>
+      *{box-sizing:border-box}body{margin:0;background:#171412;color:#29221f;font-family:Arial,Helvetica,sans-serif}.sheet{width:210mm;min-height:297mm;margin:18px auto;background:#f7f0e7;padding:14mm 15mm 17mm;position:relative;box-shadow:0 12px 38px #0005;overflow:hidden}.topline{height:7px;background:linear-gradient(90deg,#a70f25,#f35f3f,#ffac68);margin:-14mm -15mm 17px}.brand{background:linear-gradient(110deg,#191513,#30201a);padding:14px 18px;border-radius:8px;border:0;color:#fff}.brand{display:flex;align-items:center;gap:18px;border-bottom:1px solid #eee;padding-bottom:16px}.brand img{width:125px;max-height:82px;object-fit:contain;filter:drop-shadow(0 2px 8px #0005)}.brandtext{margin-left:auto;text-align:right}.brandtext strong{display:block;letter-spacing:2.4px;font-size:12px;color:#ff8b61}.brandtext span{font-size:11px;color:#d9c8bc}.eyebrow{color:#b41e2c;text-transform:uppercase;letter-spacing:2px;font-size:10px;font-weight:bold;margin-top:18px}.title{font-size:30px;line-height:1.1;margin:6px 0 14px;font-family:Georgia,serif;font-weight:700}.client{font-size:17px;font-weight:bold;margin-bottom:4px}.muted{color:#666;font-size:12px}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 22px}.fact{padding:12px;background:#fffaf4;border:1px solid #ead9ca;border-left:3px solid #d84b38;border-radius:7px}.fact label{display:block;text-transform:uppercase;letter-spacing:1px;color:#777;font-size:9px;margin-bottom:6px}.fact strong{font-size:13px}.section-label{font-size:11px;letter-spacing:1.7px;text-transform:uppercase;color:#b41e2c;border-bottom:1px solid #dfcbb9;padding-bottom:8px;margin:17px 0 10px}.menu-description{font-size:13px;line-height:1.65;color:#6f5e52;margin:0 0 12px}.menu-name-feature{font-family:Georgia,serif;font-size:25px;font-weight:700;line-height:1.2;color:#241713;background:#f0dfcf;border:1px solid #e2c7b1;border-radius:10px;padding:16px 18px;margin:0 0 14px}.menu-name-feature small{display:block;font:700 9px Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;color:#b91e32;margin-bottom:7px}.dish{display:flex;align-items:center;gap:16px;padding:16px 18px;margin:0 0 10px;border:1px solid #e5d0bd;border-left:4px solid #d94b35;border-radius:10px;background:linear-gradient(110deg,#fffaf5,#f5e9dc);break-inside:avoid;min-height:82px}.dish-number{font-family:Georgia,serif;font-size:25px;font-weight:bold;color:#c32832;min-width:42px;letter-spacing:-1px}.dish-copy{min-width:0;flex:1}.dish h3{font-size:17px;line-height:1.25;margin:0 0 6px;color:#241d19;letter-spacing:.2px}.dish-detail{font-size:12px;line-height:1.55;color:#78675c;margin:0}.dish:nth-child(even){background:linear-gradient(110deg,#f4e8dc,#fffaf5)}.price{margin-top:16px;background:linear-gradient(110deg,#171311,#332019);color:white;padding:17px 20px;border-radius:9px;border:1px solid #563326;display:flex;align-items:center;justify-content:space-between;gap:15px}.price .label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#ffd5c7}.price .value{font-size:26px;font-weight:bold;white-space:nowrap}.price .total{font-size:11px;color:#ddd;margin-top:5px}.notes-client{font-size:11px;line-height:1.6;color:#555;margin-top:14px}.payment{margin-top:16px;padding:14px 17px;background:#f1e4d7;border:1px solid #dfc4ae;border-radius:8px;break-inside:avoid}.payment h2{font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:#b91c32;margin:0 0 10px}.payment ol{margin:0;padding-left:18px;font-size:11px;line-height:1.8}.footer{position:absolute;bottom:8mm;left:15mm;right:15mm;border-top:1px solid #d9c4b1;padding-top:9px;display:flex;justify-content:space-between;font-size:9px;color:#76665b}.footer b{color:#c5162e;letter-spacing:1px}@page{size:A4;margin:0}@media print{body{background:#f7f0e7;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{margin:0;width:210mm;min-height:297mm;box-shadow:none;page-break-after:always}.sheet:last-child{page-break-after:auto}.no-print{display:none!important}}@media(max-width:800px){.sheet{width:100%;min-height:100vh;margin:0;padding:24px}.topline{margin:-24px -24px 20px}.footer{position:static;margin-top:25px}.facts{grid-template-columns:1fr 1fr}.brand img{width:110px}}
+      </style></head><body><main class="sheet"><div class="topline"></div><header class="brand">${logo?`<img src="${logo}" alt="Brumas BBQ">`:''}<div class="brandtext"><strong>BRUMAS BBQ</strong><span>Humo y fuego · Propuesta gastronómica</span></div></header><div class="eyebrow">Propuesta de servicio</div><h1 class="title">Cotización</h1><div class="client">${esc(cliente)}</div><div class="muted">Propuesta preparada el ${esc(fechaCotizacion)}</div><div class="facts"><div class="fact"><label>Fecha del evento</label><strong>${esc(fechaEvento)}</strong></div><div class="fact"><label>Personas</label><strong>${personas} personas</strong></div><div class="fact"><label>Menú seleccionado</label><strong>${esc(menuNombre)}</strong></div></div><div class="section-label">Menú seleccionado</div><div class="menu-name-feature"><small>Propuesta gastronómica</small>${esc(menuNombre)}</div>${descripcion}<div class="section-label">Preparaciones incluidas</div>${combos||'<p class="muted">Detalle del menú seleccionado.</p>'}<div class="price"><div><div class="label">Precio por persona</div><div class="total">Total para ${r.produccion.personas} personas: ${esc(fmtMoney(r.rentabilidad.venta))}</div></div><div class="value">${esc(fmtMoney(precio))}</div></div>${safeNotas}<section class="payment"><h2>Notas importantes · Condiciones de pago</h2><ol><li>Para reservar la fecha, se debe depositar <b>₡20.000</b>.</li><li>Dos semanas antes de la actividad, se debe depositar el <b>50 %</b>.</li><li>Un día antes del evento, se debe cancelar el <b>saldo restante</b>.</li></ol></section><footer class="footer"><span><b>BRUMAS BBQ</b> · Humo y fuego</span><span>Gracias por considerarnos para su evento</span></footer></main><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250));<\/script></body></html>`;
+    const w=window.open('','_blank');
+    if(!w)throw new Error('El navegador bloqueó la ventana. Permití ventanas emergentes para generar el PDF.');
+    w.document.open();w.document.write(html);w.document.close();
+  }catch(e){alert('No se pudo generar la cotización PDF: '+e.message);}
+}
+
 function exportCotizacion(){
   try{
     const entrada=leerCotizacionF7(),r=calcularCostoEvento(entrada);
@@ -2403,11 +2450,13 @@ async function saveCostoFijo(){
 function recalcCFs(){cfData.forEach(cf=>{try{cf.total=costoRecetaActual(cf);cf.costo_por_unidad_rendimiento=Number(cf.rendimiento_cantidad)>0?cf.total/Number(cf.rendimiento_cantidad):null;delete cf.error_costeo;}catch(e){cf.error_costeo=e.message;}});renderCF();}
 function renderCF(){
   const tbody=document.getElementById('cf-tbody');if(!tbody)return;
-  tbody.innerHTML=cfData.map(cf=>{let total,error='';try{total=costoRecetaActual(cf);}catch(e){error=e.message;}
+  const query=(document.getElementById('cf-busqueda')?.value||'').trim().toLocaleLowerCase('es');
+  const visibles=cfData.filter(cf=>String(cf.nombre||'').toLocaleLowerCase('es').includes(query));
+  tbody.innerHTML=visibles.map(cf=>{let total,error='';try{total=costoRecetaActual(cf);}catch(e){error=e.message;}
     const id=encodeURIComponent(cf.id),unit=Number(cf.rendimiento_cantidad)>0&&!error?total/Number(cf.rendimiento_cantidad):null;
     if(!error){cf.total=total;cf.costo_por_unidad_rendimiento=unit;}
     return `<tr><td>${escapeF7(cf.id)}</td><td>${escapeF7(cf.nombre)}${cf.detalle_receta?'<div style="font-size:11px;color:var(--text2);max-width:240px;white-space:pre-wrap;">'+escapeF7(cf.detalle_receta)+'</div>':''}</td><td>${(cf.items||[]).map(x=>escapeF7((itemLabel(x.id)||x.id)+' × '+x.qty+(x.unidad?' '+x.unidad:''))).join('<br>')}</td><td>${error?escapeF7(error):fmtMoney(total)}</td><td>${cf.rendimiento_cantidad?escapeF7(cf.rendimiento_cantidad+' '+cf.rendimiento_unidad):'Lote sin rendimiento'}</td><td>${unit==null?'—':monedaPrecisa(unit)+' / '+escapeF7(cf.rendimiento_unidad)}</td><td><button class="btn sm" data-receta="${id}" onclick="editCF(decodeURIComponent(this.dataset.receta))">Editar</button><button class="btn sm danger" data-receta="${id}" onclick="deleteCF(decodeURIComponent(this.dataset.receta))">Eliminar</button></td></tr>`;
-  }).join('')||'<tr><td colspan="7"><div class="empty">Sin recetas aún.</div></td></tr>';
+  }).join('')||(query?'<tr><td colspan="7"><div class="empty">No se encontraron costos fijos con ese nombre.</div></td></tr>':'<tr><td colspan="7"><div class="empty">Sin recetas aún.</div></td></tr>');
 }
 
 // Seguridad: codificación según el contexto y acceso cerrado por defecto.
